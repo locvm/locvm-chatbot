@@ -9,6 +9,7 @@
     "test": "npx jest --runInBand"
   },
   "dependencies": {
+    "@prisma/adapter-pg": "^7.4.2",
     "@prisma/client": "^7.4.1",
     "dotenv": "^17.3.1",
     "next": "16.1.6",

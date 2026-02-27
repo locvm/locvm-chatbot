@@ -5,8 +5,14 @@ import { applyRateLimit, buildRateLimitHeaders } from "@/src/lib/rateLimit";
 export const runtime = "nodejs";
 
 type FeedbackRequestBody = {
-  interactionId: string;
+  interactionId?: string;
   helpful: boolean;
+  fallbackLog?: {
+    userId?: string;
+    question?: string;
+    matchedFaqId?: string | null;
+    matchScore?: number | null;
+  };
 };
 
 const MAX_WRITE_ATTEMPTS = 2;
@@ -36,7 +42,57 @@ function isValidFeedbackRequestBody(input: unknown): input is FeedbackRequestBod
   }
 
   const candidate = input as Partial<FeedbackRequestBody>;
-  return typeof candidate.interactionId === "string" && typeof candidate.helpful === "boolean";
+  if (typeof candidate.helpful !== "boolean") {
+    return false;
+  }
+
+  if (
+    candidate.interactionId !== undefined &&
+    typeof candidate.interactionId !== "string"
+  ) {
+    return false;
+  }
+
+  if (candidate.fallbackLog !== undefined) {
+    if (!candidate.fallbackLog || typeof candidate.fallbackLog !== "object") {
+      return false;
+    }
+
+    const fallbackLog = candidate.fallbackLog as Partial<
+      NonNullable<FeedbackRequestBody["fallbackLog"]>
+    >;
+    if (
+      fallbackLog.userId !== undefined &&
+      typeof fallbackLog.userId !== "string"
+    ) {
+      return false;
+    }
+
+    if (
+      fallbackLog.question !== undefined &&
+      typeof fallbackLog.question !== "string"
+    ) {
+      return false;
+    }
+
+    if (
+      fallbackLog.matchedFaqId !== undefined &&
+      fallbackLog.matchedFaqId !== null &&
+      typeof fallbackLog.matchedFaqId !== "string"
+    ) {
+      return false;
+    }
+
+    if (
+      fallbackLog.matchScore !== undefined &&
+      fallbackLog.matchScore !== null &&
+      typeof fallbackLog.matchScore !== "number"
+    ) {
+      return false;
+    }
+  }
+
+  return true;
 }
 
 function isTransientDbError(error: unknown): boolean {
@@ -84,6 +140,33 @@ async function updateFeedbackWithRetry(interactionId: string, helpful: boolean):
   throw lastError;
 }
 
+async function createFeedbackInteractionWithRetry(data: {
+  userId: string;
+  question: string;
+  matchedFaqId: string | null;
+  matchScore: number | null;
+  wasHelpful: boolean;
+}): Promise<string> {
+  let lastError: unknown = null;
+
+  for (let attempt = 1; attempt <= MAX_WRITE_ATTEMPTS; attempt += 1) {
+    try {
+      const created = await getDb().interactionLog.create({ data });
+      return created.id;
+    } catch (error) {
+      lastError = error;
+
+      if (!isTransientDbError(error) || attempt === MAX_WRITE_ATTEMPTS) {
+        throw error;
+      }
+
+      await wait(120 * attempt);
+    }
+  }
+
+  throw lastError;
+}
+
 export async function GET(_req: NextRequest): Promise<NextResponse> {
   return NextResponse.json({ message: "Method not allowed" }, { status: 405 });
 }
@@ -104,22 +187,65 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
       return NextResponse.json({ error: "invalid_request" }, { status: 400 });
     }
 
-    const interactionId = body.interactionId.trim();
+    const interactionId =
+      typeof body.interactionId === "string" ? body.interactionId.trim() : "";
+    const fallbackUserId = body.fallbackLog?.userId?.trim() ?? "";
+    const fallbackQuestion = body.fallbackLog?.question?.trim() ?? "";
+    const fallbackMatchedFaqId = body.fallbackLog?.matchedFaqId ?? null;
+    const fallbackMatchScore = body.fallbackLog?.matchScore ?? null;
+    const hasValidFallbackLog =
+      fallbackUserId.length > 0 &&
+      fallbackQuestion.length > 0 &&
+      fallbackUserId.length <= 128 &&
+      fallbackQuestion.length <= 2000 &&
+      (fallbackMatchedFaqId === null ||
+        (typeof fallbackMatchedFaqId === "string" && fallbackMatchedFaqId.length <= 128)) &&
+      (fallbackMatchScore === null || Number.isFinite(fallbackMatchScore));
 
-    if (!interactionId || interactionId.length > 128) {
+    if (!interactionId && !hasValidFallbackLog) {
       return NextResponse.json({ error: "invalid_request" }, { status: 400 });
     }
 
-    const updatedCount = await updateFeedbackWithRetry(interactionId, body.helpful);
-    if (updatedCount === 0) {
-      return NextResponse.json({ error: "interaction_not_found" }, { status: 404 });
+    if (interactionId && interactionId.length > 128) {
+      return NextResponse.json({ error: "invalid_request" }, { status: 400 });
+    }
+
+    let resolvedInteractionId = interactionId;
+    let resolutionMode: "updated_existing" | "created_from_feedback" = "updated_existing";
+
+    if (interactionId) {
+      const updatedCount = await updateFeedbackWithRetry(interactionId, body.helpful);
+      if (updatedCount === 0) {
+        if (!hasValidFallbackLog) {
+          return NextResponse.json({ error: "interaction_not_found" }, { status: 404 });
+        }
+
+        resolvedInteractionId = await createFeedbackInteractionWithRetry({
+          userId: fallbackUserId,
+          question: fallbackQuestion,
+          matchedFaqId: fallbackMatchedFaqId,
+          matchScore: fallbackMatchScore,
+          wasHelpful: body.helpful,
+        });
+        resolutionMode = "created_from_feedback";
+      }
+    } else {
+      resolvedInteractionId = await createFeedbackInteractionWithRetry({
+        userId: fallbackUserId,
+        question: fallbackQuestion,
+        matchedFaqId: fallbackMatchedFaqId,
+        matchScore: fallbackMatchScore,
+        wasHelpful: body.helpful,
+      });
+      resolutionMode = "created_from_feedback";
     }
 
     return NextResponse.json(
       {
         ok: true,
-        interactionId,
+        interactionId: resolvedInteractionId,
         helpful: body.helpful,
+        resolutionMode,
       },
       { status: 200 }
     );

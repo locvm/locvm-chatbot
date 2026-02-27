@@ -10,6 +10,17 @@ type FaqRequestBody = {
   question: string;
 };
 
+type FaqResponseBody = {
+  interactionId: string | null;
+  answer: string;
+  links: { label: string; href: string }[];
+  matchedFaqId: string | null;
+  matchScore: number | null;
+  status: "matched" | "no_match";
+  logSaved: boolean;
+  logError: string | null;
+};
+
 const MAX_WRITE_ATTEMPTS = 2;
 const DEFAULT_RATE_LIMIT_MAX = 25;
 const DEFAULT_RATE_LIMIT_WINDOW_MS = 60_000;
@@ -111,6 +122,8 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
     const result = matchFaq(question);
 
     let interactionId: string | null = null;
+    let logSaved = false;
+    let logError: string | null = null;
     try {
       interactionId = await createInteractionWithRetry({
         userId,
@@ -118,20 +131,26 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
         matchedFaqId: result.matchedFaqId,
         matchScore: result.matchScore,
       });
+      logSaved = true;
     } catch (error) {
       // Return FAQ response even when DB logging is unavailable.
+      logError = "db_write_failed";
       console.error("faq_log_write_failed", error);
     }
 
+    const responseBody: FaqResponseBody = {
+      interactionId,
+      answer: result.answer,
+      links: result.links,
+      matchedFaqId: result.matchedFaqId,
+      matchScore: result.matchScore,
+      status: result.status,
+      logSaved,
+      logError,
+    };
+
     return NextResponse.json(
-      {
-        interactionId,
-        answer: result.answer,
-        links: result.links,
-        matchedFaqId: result.matchedFaqId,
-        matchScore: result.matchScore,
-        status: result.status,
-      },
+      responseBody,
       { status: 200 }
     );
   } catch {

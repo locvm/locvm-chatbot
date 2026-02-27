@@ -51,10 +51,6 @@ Environment (`.env`):
 
 ```env
 DATABASE_URL="postgres://..."
-# Optional but recommended when using Prisma Accelerate directly.
-PRISMA_ACCELERATE_URL="prisma+postgres://...?...&api_key=..."
-# Optional: auto | accelerate (default: auto)
-PRISMA_CONNECTION_MODE="auto"
 # Optional rate-limit tuning
 FAQ_RATE_LIMIT_MAX="25"
 FAQ_RATE_LIMIT_WINDOW_MS="60000"
@@ -63,11 +59,8 @@ FEEDBACK_RATE_LIMIT_WINDOW_MS="60000"
 ```
 
 Notes:
-- Prisma client here is configured to use Prisma Accelerate-style connection handling.
-- Connection mode behavior:
-  - `auto` (default): use Prisma Accelerate when API key exists.
-  - `accelerate`: force Prisma Accelerate (requires API key).
-  - This generated Prisma client currently requires Accelerate transport for runtime DB access.
+- Prisma client here uses direct PostgreSQL via `@prisma/adapter-pg`.
+- Use a standard `postgres://` or `postgresql://` connection string in `DATABASE_URL`.
 - API endpoints include baseline in-memory per-IP rate limiting (configured by env vars above).
 
 Optional DB UI:
@@ -105,9 +98,12 @@ Success response (200):
 {
   "interactionId": "clx123...",
   "answer": "Use the Forgot Password link on the sign-in page...",
+  "links": [],
   "matchedFaqId": "reset-password",
   "matchScore": 7,
-  "status": "matched"
+  "status": "matched",
+  "logSaved": true,
+  "logError": null
 }
 ```
 
@@ -117,13 +113,16 @@ No-match response (200):
 {
   "interactionId": null,
   "answer": "Sorry, I could not find a matching FAQ answer. Please contact support for help.",
+  "links": [],
   "matchedFaqId": null,
   "matchScore": null,
-  "status": "no_match"
+  "status": "no_match",
+  "logSaved": false,
+  "logError": "db_write_failed"
 }
 ```
 
-`interactionId` can be `null` when FAQ logging is temporarily unavailable; in that case feedback updates cannot be tied to that response.
+`interactionId` can be `null` when FAQ logging is temporarily unavailable. The feedback endpoint supports a fallback log payload so feedback can still create a record.
 
 ### Data Captured
 
@@ -161,9 +160,17 @@ Request:
 ```json
 {
   "interactionId": "clx123...",
-  "helpful": true
+  "helpful": true,
+  "fallbackLog": {
+    "userId": "user_123",
+    "question": "How do I reset my password?",
+    "matchedFaqId": "reset-password",
+    "matchScore": 7
+  }
 }
 ```
+
+`interactionId` is optional when `fallbackLog` is provided.
 
 Success response (200):
 
@@ -171,7 +178,8 @@ Success response (200):
 {
   "ok": true,
   "interactionId": "clx123...",
-  "helpful": true
+  "helpful": true,
+  "resolutionMode": "updated_existing"
 }
 ```
 
@@ -203,8 +211,20 @@ Rate-limited response (429):
 ## Verification Performed
 
 - `npm run build` passes.
-- Live endpoint smoke tests reached the routes.
-- In this sandbox environment, DB writes failed due DNS resolution (`ENOTFOUND db.prisma.io`), so successful write verification depends on reachable DB networking in your runtime environment.
+- Unit/API test suite passes (`npm test`).
+- Direct adapter-path Prisma write/read succeeds against `InteractionLog`.
+
+## Testing
+
+```bash
+npm test
+```
+
+Optional live DB connectivity check (requires reachable `DATABASE_URL`):
+
+```bash
+RUN_DB_CONNECTION_TEST=1 npx jest tests/src/lib/db.connection.test.ts --runInBand
+```
 
 ## Frontend Widget Prototype (Current)
 

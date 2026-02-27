@@ -221,11 +221,11 @@
 }
 
 .feedbackRow {
-  margin-top: 0.55rem;
-  padding-top: 0.45rem;
+  margin-top: 0.9rem;
+  padding-top: 0.7rem;
   border-top: 1px solid rgba(100, 116, 139, 0.2);
   display: grid;
-  gap: 0.4rem;
+  gap: 0.5rem;
 }
 
 .feedbackPrompt {

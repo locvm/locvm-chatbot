@@ -10,21 +10,23 @@ type FeedbackState =
   | "submitted_no"
   | "error";
 
-type AssistantFeedback = {
-  interactionId: string;
-  state: FeedbackState;
+type FeedbackFallbackLog = {
+  userId: string;
+  question: string;
+  matchedFaqId: string | null;
+  matchScore: number | null;
 };
 
-type MessageLink = {
-  label: string;
-  href: string;
+type AssistantFeedback = {
+  interactionId: string | null;
+  fallbackLog: FeedbackFallbackLog;
+  state: FeedbackState;
 };
 
 type Message = {
   id: string;
   role: "assistant" | "user";
   text: string;
-  links?: MessageLink[];
   feedback?: AssistantFeedback;
   noMatchSuggestions?: string[];
   supportEmail?: string;
@@ -33,19 +35,20 @@ type Message = {
 type FaqApiResponse = {
   interactionId?: string;
   answer?: string;
-  links?: MessageLink[];
   matchedFaqId?: string | null;
   matchScore?: number | null;
   status?: "matched" | "no_match";
+  logSaved?: boolean;
+  logError?: string | null;
   retryAfterSeconds?: number;
   error?: string;
 };
 
-const SEARCH_LINK: MessageLink = { label: "Browse openings", href: "/search" };
-const LOGIN_LINK: MessageLink = { label: "Go to login", href: "/login" };
-const RESET_PASSWORD_LINK: MessageLink = {
-  label: "Reset password",
-  href: "/reset-password",
+type FeedbackApiResponse = {
+  interactionId?: string;
+  helpful?: boolean;
+  ok?: boolean;
+  error?: string;
 };
 
 const HUMAN_HELP_MESSAGE =
@@ -78,86 +81,40 @@ function isFrustrationIntent(question: string): boolean {
   return frustrationPhrases.some((phrase) => normalized.includes(phrase));
 }
 
-function getContextualLinks(question: string): MessageLink[] {
+function shouldShowNoMatchSuggestions(question: string): boolean {
   const normalized = question.trim().toLowerCase();
-  const links: MessageLink[] = [];
+  const domainSignals = [
+    "locvm",
+    "locum",
+    "opening",
+    "job",
+    "toronto",
+    "support",
+    "contact",
+    "price",
+    "cost",
+    "fee",
+    "payment",
+    "paid",
+    "jetpay",
+    "password",
+    "login",
+    "log in",
+    "sign in",
+    "signin",
+    "account",
+    "verification",
+    "onboarding",
+    "booking",
+    "posting",
+    "recruiter",
+    "physician",
+    "cancellation",
+    "cancel",
+    "deposit",
+  ];
 
-  const asksForSearch =
-    normalized.includes("toronto") &&
-    (normalized.includes("locum") ||
-      normalized.includes("local") ||
-      normalized.includes("job") ||
-      normalized.includes("opening"));
-  if (asksForSearch) {
-    links.push(SEARCH_LINK);
-  }
-
-  const asksForPassword =
-    normalized.includes("password") ||
-    normalized.includes("forgot") ||
-    normalized.includes("reset");
-  if (asksForPassword) {
-    links.push(RESET_PASSWORD_LINK, LOGIN_LINK);
-  } else if (
-    normalized.includes("login") ||
-    normalized.includes("log in") ||
-    normalized.includes("sign in") ||
-    normalized.includes("signin") ||
-    normalized.includes("account access")
-  ) {
-    links.push(LOGIN_LINK);
-  }
-
-  return links.filter(
-    (link, index) => links.findIndex((candidate) => candidate.href === link.href) === index
-  );
-}
-
-function sanitizeLinks(links: unknown): MessageLink[] {
-  if (!Array.isArray(links)) {
-    return [];
-  }
-
-  const sanitized = links
-    .filter((candidate): candidate is MessageLink => {
-      if (!candidate || typeof candidate !== "object") {
-        return false;
-      }
-
-      const link = candidate as Partial<MessageLink>;
-      if (typeof link.label !== "string" || typeof link.href !== "string") {
-        return false;
-      }
-
-      if (!link.label.trim() || !link.href.trim()) {
-        return false;
-      }
-
-      return (
-        link.href.startsWith("/") ||
-        link.href.startsWith("mailto:") ||
-        link.href.startsWith("https://") ||
-        link.href.startsWith("http://")
-      );
-    })
-    .map((link) => ({
-      label: link.label.trim(),
-      href: link.href.trim(),
-    }));
-
-  return sanitized.filter(
-    (link, index) =>
-      sanitized.findIndex((candidate) => candidate.href === link.href) === index
-  );
-}
-
-function mergeLinks(...groups: MessageLink[][]): MessageLink[] {
-  return groups
-    .flat()
-    .filter(
-      (link, index, list) =>
-        list.findIndex((candidate) => candidate.href === link.href) === index
-    );
+  return !domainSignals.some((signal) => normalized.includes(signal));
 }
 
 function getFallbackReply(question: string): string {
@@ -238,6 +195,23 @@ function getRateLimitReply(retryAfterSeconds?: number): string {
   return "You are sending messages too quickly. Please wait a moment and try again.";
 }
 
+async function logQuestionBestEffort(userId: string, question: string): Promise<void> {
+  try {
+    await fetch("/api/faq", {
+      method: "POST",
+      headers: {
+        "content-type": "application/json",
+      },
+      body: JSON.stringify({
+        userId,
+        question,
+      }),
+    });
+  } catch {
+    // Ignore logging failures here to keep handoff response fast and stable.
+  }
+}
+
 export default function Home() {
   const [isOpen, setIsOpen] = useState(false);
   const [draft, setDraft] = useState("");
@@ -272,6 +246,7 @@ export default function Home() {
     setPendingReplies((current) => current + 1);
 
     if (isFrustrationIntent(question)) {
+      void logQuestionBestEffort(sessionUserIdRef.current, question);
       await wait(700);
       setMessages((current) => [
         ...current,
@@ -279,7 +254,6 @@ export default function Home() {
           id: crypto.randomUUID(),
           role: "assistant",
           text: HUMAN_HELP_MESSAGE,
-          links: [{ label: "Email support", href: "mailto:support@locvm.ca" }],
         },
       ]);
       setPendingReplies((current) => Math.max(0, current - 1));
@@ -311,41 +285,52 @@ export default function Home() {
       } else if (!response.ok || typeof payload.answer !== "string") {
         throw new Error(payload.error ?? "faq_request_failed");
       } else {
-        const payloadLinks = sanitizeLinks(payload.links);
+        const feedbackContext: FeedbackFallbackLog = {
+          userId: sessionUserIdRef.current,
+          question,
+          matchedFaqId:
+            typeof payload.matchedFaqId === "string" && payload.matchedFaqId.length > 0
+              ? payload.matchedFaqId
+              : null,
+          matchScore: typeof payload.matchScore === "number" ? payload.matchScore : null,
+        };
+        const interactionId =
+          typeof payload.interactionId === "string" && payload.interactionId.length > 0
+            ? payload.interactionId
+            : null;
         if (payload.status === "no_match") {
+          const showNoMatchSuggestions = shouldShowNoMatchSuggestions(question);
           assistantMessage = {
             id: crypto.randomUUID(),
             role: "assistant",
-            text: getNoMatchGuidance(question),
-            links: mergeLinks(payloadLinks, getContextualLinks(question)),
-            noMatchSuggestions: [
-              "How do I reset my password?",
-              "How can I contact support?",
-              "Are there platform fees?",
-              "When do locum physicians get paid?",
-            ],
-            supportEmail: "support@locvm.ca",
-            feedback:
-              typeof payload.interactionId === "string" && payload.interactionId.length > 0
-                ? {
-                    interactionId: payload.interactionId,
-                    state: "idle",
-                  }
-                : undefined,
+            text: showNoMatchSuggestions
+              ? getNoMatchGuidance(question)
+              : getFallbackReply(question),
+            noMatchSuggestions: showNoMatchSuggestions
+              ? [
+                  "How do I reset my password?",
+                  "How can I contact support?",
+                  "Are there platform fees?",
+                  "When do locum physicians get paid?",
+                ]
+              : undefined,
+            supportEmail: showNoMatchSuggestions ? "support@locvm.ca" : undefined,
+            feedback: {
+              interactionId,
+              fallbackLog: feedbackContext,
+              state: "idle",
+            },
           };
         } else {
           assistantMessage = {
             id: crypto.randomUUID(),
             role: "assistant",
             text: payload.answer,
-            links: payloadLinks,
-            feedback:
-              typeof payload.interactionId === "string" && payload.interactionId.length > 0
-                ? {
-                    interactionId: payload.interactionId,
-                    state: "idle",
-                  }
-                : undefined,
+            feedback: {
+              interactionId,
+              fallbackLog: feedbackContext,
+              state: "idle",
+            },
           };
         }
       }
@@ -354,7 +339,6 @@ export default function Home() {
         id: crypto.randomUUID(),
         role: "assistant",
         text: getFallbackReply(question),
-        links: getContextualLinks(question),
       };
     }
 
@@ -380,6 +364,7 @@ export default function Home() {
     }
 
     const interactionId = message.feedback.interactionId;
+    const fallbackLog = message.feedback.fallbackLog;
 
     setMessages((current) =>
       current.map((candidate) => {
@@ -404,13 +389,15 @@ export default function Home() {
           "content-type": "application/json",
         },
         body: JSON.stringify({
-          interactionId,
+          interactionId: interactionId ?? undefined,
           helpful,
+          fallbackLog,
         }),
       });
 
+      const payload = (await response.json()) as FeedbackApiResponse;
       if (!response.ok) {
-        throw new Error("feedback_request_failed");
+        throw new Error(payload.error ?? "feedback_request_failed");
       }
 
       setMessages((current) =>
@@ -423,6 +410,10 @@ export default function Home() {
             ...candidate,
             feedback: {
               ...candidate.feedback,
+              interactionId:
+                typeof payload.interactionId === "string" && payload.interactionId.length > 0
+                  ? payload.interactionId
+                  : candidate.feedback.interactionId,
               state: helpful ? "submitted_yes" : "submitted_no",
             },
           };
@@ -446,6 +437,11 @@ export default function Home() {
       );
     }
   };
+
+  const latestFeedbackMessageId =
+    [...messages]
+      .reverse()
+      .find((message) => message.role === "assistant" && message.feedback)?.id ?? null;
 
   return (
     <div className={styles.page}>
@@ -493,15 +489,6 @@ export default function Home() {
               }`}
             >
               <p>{message.text}</p>
-              {message.links?.length ? (
-                <div className={styles.messageLinks}>
-                  {message.links.map((link) => (
-                    <a key={`${message.id}-${link.href}`} href={link.href} className={styles.messageLink}>
-                      {link.label}
-                    </a>
-                  ))}
-                </div>
-              ) : null}
               {message.noMatchSuggestions?.length ? (
                 <>
                   <ul className={styles.suggestionList}>
@@ -517,7 +504,9 @@ export default function Home() {
                   ) : null}
                 </>
               ) : null}
-              {message.role === "assistant" && message.feedback ? (
+              {message.role === "assistant" &&
+              message.feedback &&
+              message.id === latestFeedbackMessageId ? (
                 <div className={styles.feedbackRow}>
                   <p className={styles.feedbackPrompt}>Did this help?</p>
                   <div className={styles.feedbackActions}>
@@ -584,17 +573,19 @@ export default function Home() {
         </div>
 
         <form className={styles.composer} onSubmit={onSubmit}>
-          <label htmlFor="chat-input" className={styles.srOnly}>
-            Ask a question
-          </label>
-          <input
-            id="chat-input"
-            value={draft}
-            onChange={(event) => setDraft(event.target.value)}
-            placeholder="Type your question..."
-            autoComplete="off"
-          />
-          <button type="submit">Send</button>
+          <div className={styles.composerRow}>
+            <label htmlFor="chat-input" className={styles.srOnly}>
+              Ask a question
+            </label>
+            <input
+              id="chat-input"
+              value={draft}
+              onChange={(event) => setDraft(event.target.value)}
+              placeholder="Type your question..."
+              autoComplete="off"
+            />
+            <button type="submit">Send</button>
+          </div>
         </form>
       </section>
 
