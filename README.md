@@ -51,6 +51,8 @@ Environment (`.env`):
 
 ```env
 DATABASE_URL="postgres://..."
+# Optional but recommended when using Prisma Accelerate directly.
+PRISMA_ACCELERATE_URL="prisma+postgres://...?...&api_key=..."
 # Optional: auto | accelerate (default: auto)
 PRISMA_CONNECTION_MODE="auto"
 # Optional rate-limit tuning

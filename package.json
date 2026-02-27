@@ -5,7 +5,8 @@
   "scripts": {
     "dev": "next dev",
     "build": "next build",
-    "start": "next start"
+    "start": "next start",
+    "test": "npx jest --runInBand"
   },
   "dependencies": {
     "@prisma/client": "^7.4.1",

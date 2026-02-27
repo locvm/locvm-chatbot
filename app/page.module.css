@@ -186,27 +186,6 @@
   margin: 0;
 }
 
-.messageLinks {
-  margin-top: 0.55rem;
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.4rem;
-}
-
-.messageLink {
-  display: inline-flex;
-  align-items: center;
-  border-radius: 999px;
-  border: 1px solid rgba(13, 148, 136, 0.22);
-  background: rgba(13, 148, 136, 0.1);
-  color: var(--teal-strong);
-  font-size: 0.78rem;
-  font-weight: 700;
-  line-height: 1;
-  text-decoration: none;
-  padding: 0.34rem 0.62rem;
-}
-
 .suggestionList {
   margin: 0.55rem 0 0;
   padding-left: 1.1rem;
@@ -239,10 +218,6 @@
   align-self: flex-end;
   background: var(--teal);
   color: var(--white);
-}
-
-.messageLink:hover {
-  text-decoration: underline;
 }
 
 .feedbackRow {
@@ -303,11 +278,16 @@
   border-top: 1px solid var(--slate-200);
   padding: 0.9rem;
   display: grid;
+  gap: 0.55rem;
+}
+
+.composerRow {
+  display: grid;
   grid-template-columns: 1fr auto;
   gap: 0.55rem;
 }
 
-.composer input {
+.composerRow input {
   border: 1px solid var(--slate-200);
   border-radius: 10px;
   padding: 0.65rem 0.75rem;
@@ -316,12 +296,12 @@
   font-size: 0.95rem;
 }
 
-.composer input:focus {
+.composerRow input:focus {
   border-color: var(--teal);
   box-shadow: 0 0 0 3px rgba(13, 148, 136, 0.15);
 }
 
-.composer button {
+.composerRow button {
   border: none;
   border-radius: 10px;
   padding: 0 0.95rem;
