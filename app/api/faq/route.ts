@@ -39,17 +39,25 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
 
     const result = matchFaq(question);
 
-    await getDb().interactionLog.create({
-      data: {
-        userId,
-        question,
-        matchedFaqId: result.matchedFaqId,
-        matchScore: result.matchScore,
-      },
-    });
+    let interactionId: string | null = null;
+    try {
+      const interaction = await getDb().interactionLog.create({
+        data: {
+          userId,
+          question,
+          matchedFaqId: result.matchedFaqId,
+          matchScore: result.matchScore,
+        },
+      });
+      interactionId = interaction.id;
+    } catch (error) {
+      // Return FAQ response even when DB logging is unavailable.
+      console.error("faq_log_write_failed", error);
+    }
 
     return NextResponse.json(
       {
+        interactionId,
         answer: result.answer,
         matchedFaqId: result.matchedFaqId,
         matchScore: result.matchScore,

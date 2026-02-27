@@ -90,6 +90,7 @@ Success response (200):
 
 ```json
 {
+  "interactionId": "clx123...",
   "answer": "Use the Forgot Password link on the sign-in page...",
   "matchedFaqId": "reset-password",
   "matchScore": 7,
@@ -101,6 +102,7 @@ No-match response (200):
 
 ```json
 {
+  "interactionId": "clx124...",
   "answer": "Sorry, I could not find a matching FAQ answer. Please contact support for help.",
   "matchedFaqId": null,
   "matchScore": null,
@@ -164,12 +166,12 @@ Validation error (400):
 - A simple floating chatbot widget is available on `/`:
   - circular launcher in the bottom-right
   - open/close panel with chat history
-  - local message composer
+  - message composer
   - typing indicator (animated three dots) before assistant replies
-- Current behavior is intentionally frontend-only:
-  - replies are generated from local prototype logic in `app/page.tsx`
-  - it is **not yet connected** to `POST /api/faq`
-  - no feedback (`/api/faq/feedback`) integration yet
+- Current behavior:
+  - sends questions to `POST /api/faq` and renders real matched/no-match answers
+  - saves `Did this help?` feedback with `POST /api/faq/feedback`
+  - if FAQ API call fails, falls back to local prototype reply logic
 
 Local test:
 
@@ -181,8 +183,6 @@ Open `http://localhost:3000`, click `Chat`, and send a few messages.
 
 ## Next Steps
 
-- Wire the widget to `POST /api/faq` for real matched FAQ responses.
-- Wire `Did this help?` to `POST /api/faq/feedback`.
 - Add auth to API endpoints.
 - Add rate limiting to prevent abuse/overages.
 - Add minimal admin reporting for `no_match` and low helpfulness trends.

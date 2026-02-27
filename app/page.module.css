@@ -138,6 +138,10 @@
   line-height: 1.5;
 }
 
+.message p {
+  margin: 0;
+}
+
 .assistantMessage {
   align-self: flex-start;
   background: #f1f5f9;
@@ -148,6 +152,60 @@
   align-self: flex-end;
   background: var(--teal);
   color: var(--white);
+}
+
+.feedbackRow {
+  margin-top: 0.55rem;
+  padding-top: 0.45rem;
+  border-top: 1px solid rgba(100, 116, 139, 0.2);
+  display: grid;
+  gap: 0.4rem;
+}
+
+.feedbackPrompt {
+  font-size: 0.79rem;
+  color: var(--slate-700);
+}
+
+.feedbackActions {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+}
+
+.feedbackButton {
+  border: 1px solid var(--slate-200);
+  background: var(--white);
+  color: var(--slate-700);
+  border-radius: 999px;
+  padding: 0.22rem 0.68rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.feedbackButtonActive {
+  border-color: var(--teal-strong);
+  background: var(--teal-soft);
+  color: var(--teal-strong);
+}
+
+.feedbackButton:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+
+.feedbackSaved,
+.feedbackError {
+  font-size: 0.74rem;
+}
+
+.feedbackSaved {
+  color: var(--teal-strong);
+}
+
+.feedbackError {
+  color: #be123c;
 }
 
 .composer {
