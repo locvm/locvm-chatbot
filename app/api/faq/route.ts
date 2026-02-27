@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getDb } from "@/src/lib/db";
 import { matchFaq } from "@/src/lib/matchFaq";
+import { applyRateLimit, buildRateLimitHeaders } from "@/src/lib/rateLimit";
 
 export const runtime = "nodejs";
 
@@ -10,6 +11,19 @@ type FaqRequestBody = {
 };
 
 const MAX_WRITE_ATTEMPTS = 2;
+const DEFAULT_RATE_LIMIT_MAX = 25;
+const DEFAULT_RATE_LIMIT_WINDOW_MS = 60_000;
+
+function toPositiveInt(value: string | undefined, fallback: number): number {
+  const parsed = Number(value);
+  return Number.isFinite(parsed) && parsed > 0 ? Math.floor(parsed) : fallback;
+}
+
+const FAQ_RATE_LIMIT_RULE = {
+  keyPrefix: "faq",
+  maxRequests: toPositiveInt(process.env.FAQ_RATE_LIMIT_MAX, DEFAULT_RATE_LIMIT_MAX),
+  windowMs: toPositiveInt(process.env.FAQ_RATE_LIMIT_WINDOW_MS, DEFAULT_RATE_LIMIT_WINDOW_MS),
+};
 
 function isValidFaqRequestBody(input: unknown): input is FaqRequestBody {
   if (!input || typeof input !== "object") {
@@ -72,6 +86,14 @@ export async function GET(_req: NextRequest): Promise<NextResponse> {
 }
 
 export async function POST(req: NextRequest): Promise<NextResponse> {
+  const rateLimit = applyRateLimit(req, FAQ_RATE_LIMIT_RULE);
+  if (!rateLimit.allowed) {
+    return NextResponse.json(
+      { error: "rate_limited", retryAfterSeconds: rateLimit.retryAfterSeconds },
+      { status: 429, headers: buildRateLimitHeaders(rateLimit) }
+    );
+  }
+
   try {
     const body: unknown = await req.json();
 

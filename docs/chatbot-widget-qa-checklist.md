@@ -39,8 +39,10 @@ Use this checklist during internal testing before release.
 ## API/Logging Checks
 
 - [ ] `POST /api/faq` returns HTTP 200 for normal prompts.
+- [ ] Rapid burst calls to `/api/faq` eventually return HTTP 429 with `error: rate_limited`.
 - [ ] If DB logging fails, `/api/faq` still returns answer data (no 500).
 - [ ] `POST /api/faq/feedback` returns HTTP 200 when `interactionId` is present.
+- [ ] Rapid burst calls to `/api/faq/feedback` eventually return HTTP 429 with `error: rate_limited`.
 - [ ] If `interactionId` is missing due to log failure, feedback controls are not shown for that reply.
 
 ## Release Sign-off

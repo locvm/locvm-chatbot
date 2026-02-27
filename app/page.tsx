@@ -28,6 +28,7 @@ type FaqApiResponse = {
   matchedFaqId?: string | null;
   matchScore?: number | null;
   status?: "matched" | "no_match";
+  retryAfterSeconds?: number;
   error?: string;
 };
 
@@ -139,6 +140,14 @@ function wait(ms: number): Promise<void> {
   });
 }
 
+function getRateLimitReply(retryAfterSeconds?: number): string {
+  if (typeof retryAfterSeconds === "number" && retryAfterSeconds > 0) {
+    return `You are sending messages too quickly. Please wait about ${retryAfterSeconds} seconds and try again.`;
+  }
+
+  return "You are sending messages too quickly. Please wait a moment and try again.";
+}
+
 export default function Home() {
   const [isOpen, setIsOpen] = useState(false);
   const [draft, setDraft] = useState("");
@@ -202,25 +211,31 @@ export default function Home() {
       });
 
       const payload = (await response.json()) as FaqApiResponse;
-      if (!response.ok || typeof payload.answer !== "string") {
+      if (response.status === 429) {
+        assistantMessage = {
+          id: crypto.randomUUID(),
+          role: "assistant",
+          text: getRateLimitReply(payload.retryAfterSeconds),
+        };
+      } else if (!response.ok || typeof payload.answer !== "string") {
         throw new Error(payload.error ?? "faq_request_failed");
+      } else {
+        const answerText =
+          payload.status === "no_match" ? getNoMatchGuidance(question) : payload.answer;
+
+        assistantMessage = {
+          id: crypto.randomUUID(),
+          role: "assistant",
+          text: answerText,
+          feedback:
+            typeof payload.interactionId === "string" && payload.interactionId.length > 0
+              ? {
+                  interactionId: payload.interactionId,
+                  state: "idle",
+                }
+              : undefined,
+        };
       }
-
-      const answerText =
-        payload.status === "no_match" ? getNoMatchGuidance(question) : payload.answer;
-
-      assistantMessage = {
-        id: crypto.randomUUID(),
-        role: "assistant",
-        text: answerText,
-        feedback:
-          typeof payload.interactionId === "string" && payload.interactionId.length > 0
-            ? {
-                interactionId: payload.interactionId,
-                state: "idle",
-              }
-            : undefined,
-      };
     } catch {
       assistantMessage = {
         id: crypto.randomUUID(),

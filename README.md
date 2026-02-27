@@ -15,7 +15,7 @@ No AI, no embeddings, and no WebSockets.
 4. Add `Did this help?` (`yes/no`) feedback per interaction.  
    Status: done (`POST /api/faq/feedback`).
 5. Host on Vercel with HTTP functions only + auth + rate limiting.  
-   Status: HTTP-only is done; auth/rate limiting are pending.
+   Status: HTTP-only and baseline rate limiting are done; auth is pending.
 6. Test internally and review logs after 30-90 days.  
    Status: pending.
 
@@ -53,6 +53,11 @@ Environment (`.env`):
 DATABASE_URL="postgres://..."
 # Optional: auto | accelerate (default: auto)
 PRISMA_CONNECTION_MODE="auto"
+# Optional rate-limit tuning
+FAQ_RATE_LIMIT_MAX="25"
+FAQ_RATE_LIMIT_WINDOW_MS="60000"
+FEEDBACK_RATE_LIMIT_MAX="50"
+FEEDBACK_RATE_LIMIT_WINDOW_MS="60000"
 ```
 
 Notes:
@@ -61,6 +66,7 @@ Notes:
   - `auto` (default): use Prisma Accelerate when API key exists.
   - `accelerate`: force Prisma Accelerate (requires API key).
   - This generated Prisma client currently requires Accelerate transport for runtime DB access.
+- API endpoints include baseline in-memory per-IP rate limiting (configured by env vars above).
 
 Optional DB UI:
 
@@ -137,6 +143,15 @@ Validation error (400):
 }
 ```
 
+Rate-limited response (429):
+
+```json
+{
+  "error": "rate_limited",
+  "retryAfterSeconds": 42
+}
+```
+
 ### `POST /api/faq/feedback`
 
 Request:
@@ -171,6 +186,15 @@ Validation error (400):
 ```json
 {
   "error": "invalid_request"
+}
+```
+
+Rate-limited response (429):
+
+```json
+{
+  "error": "rate_limited",
+  "retryAfterSeconds": 42
 }
 ```
 
@@ -213,6 +237,6 @@ QA checklist:
 ## Next Steps
 
 - Add auth to API endpoints.
-- Add rate limiting to prevent abuse/overages.
+- Move rate limiting from in-memory to a shared store (for multi-instance consistency).
 - Add minimal admin reporting for `no_match` and low helpfulness trends.
 - Run internal trial and review logs after 30-90 days.

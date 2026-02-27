@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getDb } from "@/src/lib/db";
+import { applyRateLimit, buildRateLimitHeaders } from "@/src/lib/rateLimit";
 
 export const runtime = "nodejs";
 
@@ -9,6 +10,25 @@ type FeedbackRequestBody = {
 };
 
 const MAX_WRITE_ATTEMPTS = 2;
+const DEFAULT_RATE_LIMIT_MAX = 50;
+const DEFAULT_RATE_LIMIT_WINDOW_MS = 60_000;
+
+function toPositiveInt(value: string | undefined, fallback: number): number {
+  const parsed = Number(value);
+  return Number.isFinite(parsed) && parsed > 0 ? Math.floor(parsed) : fallback;
+}
+
+const FEEDBACK_RATE_LIMIT_RULE = {
+  keyPrefix: "faq-feedback",
+  maxRequests: toPositiveInt(
+    process.env.FEEDBACK_RATE_LIMIT_MAX,
+    DEFAULT_RATE_LIMIT_MAX
+  ),
+  windowMs: toPositiveInt(
+    process.env.FEEDBACK_RATE_LIMIT_WINDOW_MS,
+    DEFAULT_RATE_LIMIT_WINDOW_MS
+  ),
+};
 
 function isValidFeedbackRequestBody(input: unknown): input is FeedbackRequestBody {
   if (!input || typeof input !== "object") {
@@ -69,6 +89,14 @@ export async function GET(_req: NextRequest): Promise<NextResponse> {
 }
 
 export async function POST(req: NextRequest): Promise<NextResponse> {
+  const rateLimit = applyRateLimit(req, FEEDBACK_RATE_LIMIT_RULE);
+  if (!rateLimit.allowed) {
+    return NextResponse.json(
+      { error: "rate_limited", retryAfterSeconds: rateLimit.retryAfterSeconds },
+      { status: 429, headers: buildRateLimitHeaders(rateLimit) }
+    );
+  }
+
   try {
     const body: unknown = await req.json();
 
