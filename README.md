@@ -159,8 +159,30 @@ Validation error (400):
 - Live endpoint smoke tests reached the routes.
 - In this sandbox environment, DB writes failed due DNS resolution (`ENOTFOUND db.prisma.io`), so successful write verification depends on reachable DB networking in your runtime environment.
 
+## Frontend Widget Prototype (Current)
+
+- A simple floating chatbot widget is available on `/`:
+  - circular launcher in the bottom-right
+  - open/close panel with chat history
+  - local message composer
+  - typing indicator (animated three dots) before assistant replies
+- Current behavior is intentionally frontend-only:
+  - replies are generated from local prototype logic in `app/page.tsx`
+  - it is **not yet connected** to `POST /api/faq`
+  - no feedback (`/api/faq/feedback`) integration yet
+
+Local test:
+
+```bash
+npm run dev
+```
+
+Open `http://localhost:3000`, click `Chat`, and send a few messages.
+
 ## Next Steps
 
+- Wire the widget to `POST /api/faq` for real matched FAQ responses.
+- Wire `Did this help?` to `POST /api/faq/feedback`.
 - Add auth to API endpoints.
 - Add rate limiting to prevent abuse/overages.
 - Add minimal admin reporting for `no_match` and low helpfulness trends.
