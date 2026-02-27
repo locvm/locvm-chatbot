@@ -1,4 +1,4 @@
-import { GET, POST } from "@/app/api/faq/feedback/route";
+import { GET, OPTIONS, POST } from "@/app/api/faq/feedback/route";
 import { getDb } from "@/src/lib/db";
 
 jest.mock("@/src/lib/db", () => ({
@@ -6,6 +6,7 @@ jest.mock("@/src/lib/db", () => ({
 }));
 
 const mockedGetDb = getDb as jest.MockedFunction<typeof getDb>;
+const EXPECTED_CORS_ORIGIN = "http://localhost:3000";
 
 function makeFeedbackPostRequest(
   body: unknown,
@@ -56,6 +57,22 @@ describe("app/api/faq/feedback/route", () => {
     expect(await response.json()).toEqual({ message: "Method not allowed" });
   });
 
+  test("OPTIONS returns CORS preflight headers", async () => {
+    const response = await OPTIONS(
+      new Request("http://localhost/api/faq/feedback", {
+        method: "OPTIONS",
+        headers: {
+          origin: EXPECTED_CORS_ORIGIN,
+        },
+      }) as never
+    );
+
+    expect(response.status).toBe(204);
+    expect(response.headers.get("Access-Control-Allow-Origin")).toBe(EXPECTED_CORS_ORIGIN);
+    expect(response.headers.get("Access-Control-Allow-Methods")).toBe("POST, OPTIONS");
+    expect(response.headers.get("Access-Control-Allow-Headers")).toBe("Content-Type");
+  });
+
   test("POST rejects invalid body", async () => {
     const response = await POST(
       makeFeedbackPostRequest({
@@ -83,6 +100,9 @@ describe("app/api/faq/feedback/route", () => {
       helpful: true,
       resolutionMode: "updated_existing",
     });
+    expect(response.headers.get("Access-Control-Allow-Origin")).toBe(EXPECTED_CORS_ORIGIN);
+    expect(response.headers.get("Access-Control-Allow-Methods")).toBe("POST, OPTIONS");
+    expect(response.headers.get("Access-Control-Allow-Headers")).toBe("Content-Type");
     expect(updateMany).toHaveBeenCalledWith({
       where: { id: "interaction-1" },
       data: { wasHelpful: true },

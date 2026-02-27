@@ -1,7 +1,11 @@
 "use client";
 
-import { FormEvent, useEffect, useRef, useState } from "react";
-import styles from "./page.module.css";
+import { FormEvent, useEffect, useId, useRef, useState } from "react";
+import styles from "./ChatWidget.module.css";
+
+export const DEFAULT_SUPPORT_EMAIL = "support@locvm.ca";
+export const DEFAULT_LAUNCHER_LABEL = "Questions? Ask Us";
+export const DEFAULT_WIDGET_TITLE = "Chat with us";
 
 type FeedbackState =
   | "idle"
@@ -38,31 +42,44 @@ type FaqApiResponse = {
   matchedFaqId?: string | null;
   matchScore?: number | null;
   status?: "matched" | "no_match";
-  logSaved?: boolean;
-  logError?: string | null;
   retryAfterSeconds?: number;
   error?: string;
 };
 
 type FeedbackApiResponse = {
   interactionId?: string;
-  helpful?: boolean;
-  ok?: boolean;
   error?: string;
 };
 
-const HUMAN_HELP_MESSAGE =
-  "I'm sorry this has been frustrating. We're happy to help you in person. Please contact support@locvm.ca and our team will follow up.";
-const API_UNAVAILABLE_MESSAGE =
-  "I'm having trouble reaching the FAQ service right now. Please try again in a moment or email support@locvm.ca for direct help.";
-
-const starterMessage: Message = {
-  id: "start",
-  role: "assistant",
-  text: "Hi, I'm the LOCVM automated assistant . Ask me a question and I'll do my best to help.",
+export type ChatWidgetProps = {
+  apiBaseUrl?: string;
+  launcherLabel?: string;
+  supportEmail?: string;
+  widgetTitle?: string;
 };
 
-function isFrustrationIntent(question: string): boolean {
+export function buildApiUrl(apiBaseUrl: string | undefined, path: string): string {
+  const normalizedBase = (apiBaseUrl ?? "").trim().replace(/\/+$/, "");
+  if (!normalizedBase) {
+    return path;
+  }
+
+  return `${normalizedBase}${path}`;
+}
+
+export function buildStarterMessage(supportEmail: string): string {
+  return `Hi, I'm the LOCVM automated assistant (not a live person). Ask me a question and I'll do my best to help. If you need direct help, email ${supportEmail}.`;
+}
+
+export function buildHumanHelpMessage(supportEmail: string): string {
+  return `I'm sorry this has been frustrating. We're happy to help you in person. Please contact ${supportEmail} and our team will follow up.`;
+}
+
+export function buildApiUnavailableMessage(supportEmail: string): string {
+  return `I'm having trouble reaching the FAQ service right now. Please try again in a moment or email ${supportEmail} for direct help.`;
+}
+
+export function isFrustrationIntent(question: string): boolean {
   const normalized = question.trim().toLowerCase();
   const frustrationPhrases = [
     "not working",
@@ -83,13 +100,7 @@ function isFrustrationIntent(question: string): boolean {
   return frustrationPhrases.some((phrase) => normalized.includes(phrase));
 }
 
-function wait(ms: number): Promise<void> {
-  return new Promise((resolve) => {
-    window.setTimeout(resolve, ms);
-  });
-}
-
-function getRateLimitReply(retryAfterSeconds?: number): string {
+export function getRateLimitReply(retryAfterSeconds?: number): string {
   if (typeof retryAfterSeconds === "number" && retryAfterSeconds > 0) {
     return `You are sending messages too quickly. Please wait about ${retryAfterSeconds} seconds and try again.`;
   }
@@ -97,34 +108,50 @@ function getRateLimitReply(retryAfterSeconds?: number): string {
   return "You are sending messages too quickly. Please wait a moment and try again.";
 }
 
-async function logQuestionBestEffort(
-  userId: string,
-  question: string,
-): Promise<void> {
-  try {
-    await fetch("/api/faq", {
-      method: "POST",
-      headers: {
-        "content-type": "application/json",
-      },
-      body: JSON.stringify({
-        userId,
-        question,
-      }),
-    });
-  } catch {
-    // Ignore logging failures here to keep handoff response fast and stable.
-  }
+function wait(ms: number): Promise<void> {
+  return new Promise((resolve) => {
+    globalThis.setTimeout(resolve, ms);
+  });
 }
 
-export default function Home() {
+async function postJson<TResponse>(url: string, body: unknown): Promise<{
+  response: Response;
+  payload: TResponse;
+}> {
+  const response = await fetch(url, {
+    method: "POST",
+    headers: {
+      "content-type": "application/json",
+    },
+    body: JSON.stringify(body),
+  });
+
+  const payload = (await response.json()) as TResponse;
+  return { response, payload };
+}
+
+export default function ChatWidget({
+  apiBaseUrl,
+  launcherLabel = DEFAULT_LAUNCHER_LABEL,
+  supportEmail = DEFAULT_SUPPORT_EMAIL,
+  widgetTitle = DEFAULT_WIDGET_TITLE,
+}: ChatWidgetProps) {
+  const inputId = useId();
   const [isOpen, setIsOpen] = useState(false);
   const [draft, setDraft] = useState("");
-  const [messages, setMessages] = useState<Message[]>([starterMessage]);
+  const [messages, setMessages] = useState<Message[]>([
+    {
+      id: "start",
+      role: "assistant",
+      text: buildStarterMessage(supportEmail),
+    },
+  ]);
   const [pendingReplies, setPendingReplies] = useState(0);
   const messagesEndRef = useRef<HTMLDivElement | null>(null);
   const sessionUserIdRef = useRef(`widget_${crypto.randomUUID().slice(0, 10)}`);
 
+  const faqUrl = buildApiUrl(apiBaseUrl, "/api/faq");
+  const feedbackUrl = buildApiUrl(apiBaseUrl, "/api/faq/feedback");
   const isTyping = pendingReplies > 0;
 
   useEffect(() => {
@@ -151,14 +178,22 @@ export default function Home() {
     setPendingReplies((current) => current + 1);
 
     if (isFrustrationIntent(question)) {
-      void logQuestionBestEffort(sessionUserIdRef.current, question);
+      try {
+        await postJson<FaqApiResponse>(faqUrl, {
+          userId: sessionUserIdRef.current,
+          question,
+        });
+      } catch {
+        // Ignore logging failures so the support handoff stays immediate.
+      }
+
       await wait(700);
       setMessages((current) => [
         ...current,
         {
           id: crypto.randomUUID(),
           role: "assistant",
-          text: HUMAN_HELP_MESSAGE,
+          text: buildHumanHelpMessage(supportEmail),
         },
       ]);
       setPendingReplies((current) => Math.max(0, current - 1));
@@ -169,18 +204,11 @@ export default function Home() {
 
     let assistantMessage: Message;
     try {
-      const response = await fetch("/api/faq", {
-        method: "POST",
-        headers: {
-          "content-type": "application/json",
-        },
-        body: JSON.stringify({
-          userId: sessionUserIdRef.current,
-          question,
-        }),
+      const { response, payload } = await postJson<FaqApiResponse>(faqUrl, {
+        userId: sessionUserIdRef.current,
+        question,
       });
 
-      const payload = (await response.json()) as FaqApiResponse;
       if (response.status === 429) {
         assistantMessage = {
           id: crypto.randomUUID(),
@@ -194,18 +222,16 @@ export default function Home() {
           userId: sessionUserIdRef.current,
           question,
           matchedFaqId:
-            typeof payload.matchedFaqId === "string" &&
-            payload.matchedFaqId.length > 0
+            typeof payload.matchedFaqId === "string" && payload.matchedFaqId.length > 0
               ? payload.matchedFaqId
               : null,
-          matchScore:
-            typeof payload.matchScore === "number" ? payload.matchScore : null,
+          matchScore: typeof payload.matchScore === "number" ? payload.matchScore : null,
         };
         const interactionId =
-          typeof payload.interactionId === "string" &&
-          payload.interactionId.length > 0
+          typeof payload.interactionId === "string" && payload.interactionId.length > 0
             ? payload.interactionId
             : null;
+
         if (payload.status === "no_match") {
           assistantMessage = {
             id: crypto.randomUUID(),
@@ -217,7 +243,7 @@ export default function Home() {
               "Are there platform fees?",
               "When do locum physicians get paid?",
             ],
-            supportEmail: "support@locvm.ca",
+            supportEmail,
             feedback: {
               interactionId,
               fallbackLog: feedbackContext,
@@ -241,7 +267,7 @@ export default function Home() {
       assistantMessage = {
         id: crypto.randomUUID(),
         role: "assistant",
-        text: API_UNAVAILABLE_MESSAGE,
+        text: buildApiUnavailableMessage(supportEmail),
       };
     }
 
@@ -266,9 +292,6 @@ export default function Home() {
       return;
     }
 
-    const interactionId = message.feedback.interactionId;
-    const fallbackLog = message.feedback.fallbackLog;
-
     setMessages((current) =>
       current.map((candidate) => {
         if (candidate.id !== messageId || !candidate.feedback) {
@@ -282,23 +305,16 @@ export default function Home() {
             state: "submitting",
           },
         };
-      }),
+      })
     );
 
     try {
-      const response = await fetch("/api/faq/feedback", {
-        method: "POST",
-        headers: {
-          "content-type": "application/json",
-        },
-        body: JSON.stringify({
-          interactionId: interactionId ?? undefined,
-          helpful,
-          fallbackLog,
-        }),
+      const { response, payload } = await postJson<FeedbackApiResponse>(feedbackUrl, {
+        interactionId: message.feedback.interactionId ?? undefined,
+        helpful,
+        fallbackLog: message.feedback.fallbackLog,
       });
 
-      const payload = (await response.json()) as FeedbackApiResponse;
       if (!response.ok) {
         throw new Error(payload.error ?? "feedback_request_failed");
       }
@@ -314,14 +330,13 @@ export default function Home() {
             feedback: {
               ...candidate.feedback,
               interactionId:
-                typeof payload.interactionId === "string" &&
-                payload.interactionId.length > 0
+                typeof payload.interactionId === "string" && payload.interactionId.length > 0
                   ? payload.interactionId
                   : candidate.feedback.interactionId,
               state: helpful ? "submitted_yes" : "submitted_no",
             },
           };
-        }),
+        })
       );
     } catch {
       setMessages((current) =>
@@ -337,7 +352,7 @@ export default function Home() {
               state: "error",
             },
           };
-        }),
+        })
       );
     }
   };
@@ -345,27 +360,18 @@ export default function Home() {
   const latestFeedbackMessageId =
     [...messages]
       .reverse()
-      .find((message) => message.role === "assistant" && message.feedback)
-      ?.id ?? null;
+      .find((message) => message.role === "assistant" && message.feedback)?.id ?? null;
 
   return (
-    <div className={styles.page}>
-      <main className={styles.main}>
-        <p className={styles.eyebrow}>LOCVM Website Preview</p>
-        <h1>Simple chatbot launcher at the bottom-right corner</h1>
-        <p>
-          This page is a prototype for the future embedded chat experience. Use
-          the round button to open the widget and test a simple conversation.
-        </p>
-      </main>
-
+    <div className={styles.widgetRoot}>
       <section
         className={`${styles.widget} ${isOpen ? styles.widgetOpen : ""}`}
-        aria-hidden={!isOpen}>
+        aria-hidden={!isOpen}
+      >
         <header className={styles.widgetHeader}>
           <div className={styles.headerCopy}>
-            <p className={styles.widgetTitle}>Chat with us</p>
-            <a className={styles.followUpLink} href="mailto:support@locvm.ca">
+            <p className={styles.widgetTitle}>{widgetTitle}</p>
+            <a className={styles.followUpLink} href={`mailto:${supportEmail}`}>
               <span className={styles.followUpIcon} aria-hidden>
                 ↗
               </span>
@@ -376,7 +382,8 @@ export default function Home() {
             type="button"
             className={styles.iconButton}
             aria-label="Close chat"
-            onClick={() => setIsOpen(false)}>
+            onClick={() => setIsOpen(false)}
+          >
             ×
           </button>
         </header>
@@ -389,7 +396,8 @@ export default function Home() {
                 message.role === "assistant"
                   ? styles.assistantMessage
                   : styles.userMessage
-              }`}>
+              }`}
+            >
               <p>{message.text}</p>
               {message.noMatchSuggestions?.length ? (
                 <>
@@ -401,10 +409,7 @@ export default function Home() {
                   {message.supportEmail ? (
                     <p className={styles.suggestionSupport}>
                       For direct help, email{" "}
-                      <a href={`mailto:${message.supportEmail}`}>
-                        {message.supportEmail}
-                      </a>
-                      .
+                      <a href={`mailto:${message.supportEmail}`}>{message.supportEmail}</a>.
                     </p>
                   ) : null}
                 </>
@@ -427,7 +432,8 @@ export default function Home() {
                         message.feedback.state === "submitting" ||
                         message.feedback.state === "submitted_yes" ||
                         message.feedback.state === "submitted_no"
-                      }>
+                      }
+                    >
                       Yes
                     </button>
                     <button
@@ -442,7 +448,8 @@ export default function Home() {
                         message.feedback.state === "submitting" ||
                         message.feedback.state === "submitted_yes" ||
                         message.feedback.state === "submitted_no"
-                      }>
+                      }
+                    >
                       No
                     </button>
                   </div>
@@ -453,9 +460,7 @@ export default function Home() {
                   ) : null}
                   {message.feedback.state === "submitted_yes" ||
                   message.feedback.state === "submitted_no" ? (
-                    <p className={styles.feedbackSaved}>
-                      Thanks for your feedback.
-                    </p>
+                    <p className={styles.feedbackSaved}>Thanks for your feedback.</p>
                   ) : null}
                 </div>
               ) : null}
@@ -466,7 +471,8 @@ export default function Home() {
               <div
                 className={styles.typingDots}
                 aria-label="Assistant is typing"
-                role="status">
+                role="status"
+              >
                 <span />
                 <span />
                 <span />
@@ -478,11 +484,11 @@ export default function Home() {
 
         <form className={styles.composer} onSubmit={onSubmit}>
           <div className={styles.composerRow}>
-            <label htmlFor="chat-input" className={styles.srOnly}>
+            <label htmlFor={inputId} className={styles.srOnly}>
               Ask a question
             </label>
             <input
-              id="chat-input"
+              id={inputId}
               value={draft}
               onChange={(event) => setDraft(event.target.value)}
               placeholder="Type your question..."
@@ -496,11 +502,10 @@ export default function Home() {
       <button
         type="button"
         className={`${styles.launcher} ${isOpen ? styles.launcherOpen : ""}`}
-        aria-label={
-          isOpen ? "Close question assistant" : "Open question assistant"
-        }
+        aria-label={isOpen ? "Close question assistant" : "Open question assistant"}
         aria-expanded={isOpen}
-        onClick={() => setIsOpen((current) => !current)}>
+        onClick={() => setIsOpen((current) => !current)}
+      >
         {isOpen ? (
           <>
             <span className={styles.launcherIcon} aria-hidden>
@@ -515,7 +520,7 @@ export default function Home() {
                 <path d="M4 5.5A2.5 2.5 0 0 1 6.5 3h11A2.5 2.5 0 0 1 20 5.5v7A2.5 2.5 0 0 1 17.5 15H10l-4.5 4v-4H6.5A2.5 2.5 0 0 1 4 12.5v-7Z" />
               </svg>
             </span>
-            <span>Questions? Ask Us</span>
+            <span>{launcherLabel}</span>
           </>
         )}
       </button>

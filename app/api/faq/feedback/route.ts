@@ -4,6 +4,13 @@ import { applyRateLimit, buildRateLimitHeaders } from "@/src/lib/rateLimit";
 
 export const runtime = "nodejs";
 
+const ALLOWED_ORIGIN = "http://localhost:3000";
+const CORS_HEADERS = {
+  "Access-Control-Allow-Origin": ALLOWED_ORIGIN,
+  "Access-Control-Allow-Methods": "POST, OPTIONS",
+  "Access-Control-Allow-Headers": "Content-Type",
+};
+
 type FeedbackRequestBody = {
   interactionId?: string;
   helpful: boolean;
@@ -167,14 +174,40 @@ async function createFeedbackInteractionWithRetry(data: {
   throw lastError;
 }
 
+function withCorsHeaders(headers?: HeadersInit): Headers {
+  const responseHeaders = new Headers(CORS_HEADERS);
+
+  if (headers) {
+    new Headers(headers).forEach((value, key) => {
+      responseHeaders.set(key, value);
+    });
+  }
+
+  return responseHeaders;
+}
+
+function jsonWithCors(body: unknown, init?: ResponseInit): NextResponse {
+  return NextResponse.json(body, {
+    ...init,
+    headers: withCorsHeaders(init?.headers),
+  });
+}
+
 export async function GET(_req: NextRequest): Promise<NextResponse> {
   return NextResponse.json({ message: "Method not allowed" }, { status: 405 });
+}
+
+export async function OPTIONS(_req: NextRequest): Promise<NextResponse> {
+  return new NextResponse(null, {
+    status: 204,
+    headers: withCorsHeaders(),
+  });
 }
 
 export async function POST(req: NextRequest): Promise<NextResponse> {
   const rateLimit = applyRateLimit(req, FEEDBACK_RATE_LIMIT_RULE);
   if (!rateLimit.allowed) {
-    return NextResponse.json(
+    return jsonWithCors(
       { error: "rate_limited", retryAfterSeconds: rateLimit.retryAfterSeconds },
       { status: 429, headers: buildRateLimitHeaders(rateLimit) }
     );
@@ -184,7 +217,7 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
     const body: unknown = await req.json();
 
     if (!isValidFeedbackRequestBody(body)) {
-      return NextResponse.json({ error: "invalid_request" }, { status: 400 });
+      return jsonWithCors({ error: "invalid_request" }, { status: 400 });
     }
 
     const interactionId =
@@ -203,11 +236,11 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
       (fallbackMatchScore === null || Number.isFinite(fallbackMatchScore));
 
     if (!interactionId && !hasValidFallbackLog) {
-      return NextResponse.json({ error: "invalid_request" }, { status: 400 });
+      return jsonWithCors({ error: "invalid_request" }, { status: 400 });
     }
 
     if (interactionId && interactionId.length > 128) {
-      return NextResponse.json({ error: "invalid_request" }, { status: 400 });
+      return jsonWithCors({ error: "invalid_request" }, { status: 400 });
     }
 
     let resolvedInteractionId = interactionId;
@@ -217,7 +250,7 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
       const updatedCount = await updateFeedbackWithRetry(interactionId, body.helpful);
       if (updatedCount === 0) {
         if (!hasValidFallbackLog) {
-          return NextResponse.json({ error: "interaction_not_found" }, { status: 404 });
+          return jsonWithCors({ error: "interaction_not_found" }, { status: 404 });
         }
 
         resolvedInteractionId = await createFeedbackInteractionWithRetry({
@@ -240,7 +273,7 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
       resolutionMode = "created_from_feedback";
     }
 
-    return NextResponse.json(
+    return jsonWithCors(
       {
         ok: true,
         interactionId: resolvedInteractionId,
@@ -250,6 +283,6 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
       { status: 200 }
     );
   } catch {
-    return NextResponse.json({ error: "internal_error" }, { status: 500 });
+    return jsonWithCors({ error: "internal_error" }, { status: 500 });
   }
 }

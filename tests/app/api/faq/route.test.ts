@@ -1,4 +1,4 @@
-import { GET, POST } from "@/app/api/faq/route";
+import { GET, OPTIONS, POST } from "@/app/api/faq/route";
 import { getDb } from "@/src/lib/db";
 
 jest.mock("@/src/lib/db", () => ({
@@ -6,6 +6,7 @@ jest.mock("@/src/lib/db", () => ({
 }));
 
 const mockedGetDb = getDb as jest.MockedFunction<typeof getDb>;
+const EXPECTED_CORS_ORIGIN = "http://localhost:3000";
 
 function makeFaqPostRequest(
   body: unknown,
@@ -50,6 +51,22 @@ describe("app/api/faq/route", () => {
     expect(await response.json()).toEqual({ message: "Method not allowed" });
   });
 
+  test("OPTIONS returns CORS preflight headers", async () => {
+    const response = await OPTIONS(
+      new Request("http://localhost/api/faq", {
+        method: "OPTIONS",
+        headers: {
+          origin: EXPECTED_CORS_ORIGIN,
+        },
+      }) as never
+    );
+
+    expect(response.status).toBe(204);
+    expect(response.headers.get("Access-Control-Allow-Origin")).toBe(EXPECTED_CORS_ORIGIN);
+    expect(response.headers.get("Access-Control-Allow-Methods")).toBe("POST, OPTIONS");
+    expect(response.headers.get("Access-Control-Allow-Headers")).toBe("Content-Type");
+  });
+
   test("POST rejects invalid body", async () => {
     const response = await POST(
       makeFaqPostRequest({
@@ -74,6 +91,9 @@ describe("app/api/faq/route", () => {
     expect(payload.status).toBe("matched");
     expect(payload.matchedFaqId).toBe("find-locum-openings-in-toronto");
     expect(payload.interactionId).toBe("interaction-1");
+    expect(response.headers.get("Access-Control-Allow-Origin")).toBe(EXPECTED_CORS_ORIGIN);
+    expect(response.headers.get("Access-Control-Allow-Methods")).toBe("POST, OPTIONS");
+    expect(response.headers.get("Access-Control-Allow-Headers")).toBe("Content-Type");
     expect(create).toHaveBeenCalledWith({
       data: expect.objectContaining({
         userId: "user-123",
