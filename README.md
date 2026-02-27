@@ -209,17 +209,17 @@ Rate-limited response (429):
 - A simple floating chatbot widget is available on `/`:
   - circular launcher in the bottom-right
   - open/close panel with chat history
-  - visible disclaimer that this is an automated assistant (not a live person)
-  - direct support contact: `support@locvm.ca`
+  - follow-up contact link under `Chat with us` (`Need follow-up?` -> `support@locvm.ca`)
   - message composer
   - typing indicator (animated three dots) before assistant replies
 - Current behavior:
   - sends questions to `POST /api/faq` and renders real matched/no-match answers
   - includes city intent handling for prompts like "I want a locum in Toronto"
   - detects frustration phrases (for example: "not working", "you're wrong") and immediately hands off to human support contact
-  - uses guided no-match suggestions for unsupported prompts
+  - uses guided no-match suggestions with cleaner formatted question list + support line
   - saves `Did this help?` feedback with `POST /api/faq/feedback`
   - if FAQ API call fails, falls back to local prototype reply logic
+  - if API returns `429`, chat displays a clear "please wait" message
   - launcher text is explicit for non-technical users: `Questions? Ask Us`
 
 Local test:

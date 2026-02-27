@@ -1,4 +1,4 @@
-import { faqs } from "@/src/data/faqs";
+import { faqs, type FaqLink } from "@/src/data/faqs";
 
 const NO_MATCH_ANSWER =
   "Sorry, I could not find a matching FAQ answer. Please contact support for help.";
@@ -7,6 +7,7 @@ const MATCH_THRESHOLD = 3;
 export type MatchFaqResult = {
   matchedFaqId: string | null;
   answer: string;
+  links: FaqLink[];
   matchScore: number | null;
   status: "matched" | "no_match";
 };
@@ -67,6 +68,7 @@ export function matchFaq(question: string): MatchFaqResult {
     return {
       matchedFaqId: null,
       answer: NO_MATCH_ANSWER,
+      links: [],
       matchScore: null,
       status: "no_match",
     };
@@ -89,6 +91,7 @@ export function matchFaq(question: string): MatchFaqResult {
     return {
       matchedFaqId: null,
       answer: NO_MATCH_ANSWER,
+      links: [],
       matchScore: null,
       status: "no_match",
     };
@@ -97,6 +100,7 @@ export function matchFaq(question: string): MatchFaqResult {
   return {
     matchedFaqId: bestFaq.id,
     answer: bestFaq.answer,
+    links: bestFaq.links ?? [],
     matchScore: bestScore,
     status: "matched",
   };

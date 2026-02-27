@@ -15,21 +15,37 @@ type AssistantFeedback = {
   state: FeedbackState;
 };
 
+type MessageLink = {
+  label: string;
+  href: string;
+};
+
 type Message = {
   id: string;
   role: "assistant" | "user";
   text: string;
+  links?: MessageLink[];
   feedback?: AssistantFeedback;
+  noMatchSuggestions?: string[];
+  supportEmail?: string;
 };
 
 type FaqApiResponse = {
   interactionId?: string;
   answer?: string;
+  links?: MessageLink[];
   matchedFaqId?: string | null;
   matchScore?: number | null;
   status?: "matched" | "no_match";
   retryAfterSeconds?: number;
   error?: string;
+};
+
+const SEARCH_LINK: MessageLink = { label: "Browse openings", href: "/search" };
+const LOGIN_LINK: MessageLink = { label: "Go to login", href: "/login" };
+const RESET_PASSWORD_LINK: MessageLink = {
+  label: "Reset password",
+  href: "/reset-password",
 };
 
 const HUMAN_HELP_MESSAGE =
@@ -60,6 +76,88 @@ function isFrustrationIntent(question: string): boolean {
   ];
 
   return frustrationPhrases.some((phrase) => normalized.includes(phrase));
+}
+
+function getContextualLinks(question: string): MessageLink[] {
+  const normalized = question.trim().toLowerCase();
+  const links: MessageLink[] = [];
+
+  const asksForSearch =
+    normalized.includes("toronto") &&
+    (normalized.includes("locum") ||
+      normalized.includes("local") ||
+      normalized.includes("job") ||
+      normalized.includes("opening"));
+  if (asksForSearch) {
+    links.push(SEARCH_LINK);
+  }
+
+  const asksForPassword =
+    normalized.includes("password") ||
+    normalized.includes("forgot") ||
+    normalized.includes("reset");
+  if (asksForPassword) {
+    links.push(RESET_PASSWORD_LINK, LOGIN_LINK);
+  } else if (
+    normalized.includes("login") ||
+    normalized.includes("log in") ||
+    normalized.includes("sign in") ||
+    normalized.includes("signin") ||
+    normalized.includes("account access")
+  ) {
+    links.push(LOGIN_LINK);
+  }
+
+  return links.filter(
+    (link, index) => links.findIndex((candidate) => candidate.href === link.href) === index
+  );
+}
+
+function sanitizeLinks(links: unknown): MessageLink[] {
+  if (!Array.isArray(links)) {
+    return [];
+  }
+
+  const sanitized = links
+    .filter((candidate): candidate is MessageLink => {
+      if (!candidate || typeof candidate !== "object") {
+        return false;
+      }
+
+      const link = candidate as Partial<MessageLink>;
+      if (typeof link.label !== "string" || typeof link.href !== "string") {
+        return false;
+      }
+
+      if (!link.label.trim() || !link.href.trim()) {
+        return false;
+      }
+
+      return (
+        link.href.startsWith("/") ||
+        link.href.startsWith("mailto:") ||
+        link.href.startsWith("https://") ||
+        link.href.startsWith("http://")
+      );
+    })
+    .map((link) => ({
+      label: link.label.trim(),
+      href: link.href.trim(),
+    }));
+
+  return sanitized.filter(
+    (link, index) =>
+      sanitized.findIndex((candidate) => candidate.href === link.href) === index
+  );
+}
+
+function mergeLinks(...groups: MessageLink[][]): MessageLink[] {
+  return groups
+    .flat()
+    .filter(
+      (link, index, list) =>
+        list.findIndex((candidate) => candidate.href === link.href) === index
+    );
 }
 
 function getFallbackReply(question: string): string {
@@ -123,15 +221,7 @@ function getNoMatchGuidance(question: string): string {
     return "Hi there. You can ask me things like password reset, account access, pricing, support, and payments. For direct help, email support@locvm.ca.";
   }
 
-  return [
-    "I couldn't find that exact answer yet.",
-    "Try one of these common questions:",
-    "How do I reset my password?",
-    "How can I contact support?",
-    "Are there platform fees?",
-    "When do locum physicians get paid?",
-    "For direct help, email support@locvm.ca.",
-  ].join("\n");
+  return "I couldn't find that exact answer yet. Try one of these common questions:";
 }
 
 function wait(ms: number): Promise<void> {
@@ -189,6 +279,7 @@ export default function Home() {
           id: crypto.randomUUID(),
           role: "assistant",
           text: HUMAN_HELP_MESSAGE,
+          links: [{ label: "Email support", href: "mailto:support@locvm.ca" }],
         },
       ]);
       setPendingReplies((current) => Math.max(0, current - 1));
@@ -220,27 +311,50 @@ export default function Home() {
       } else if (!response.ok || typeof payload.answer !== "string") {
         throw new Error(payload.error ?? "faq_request_failed");
       } else {
-        const answerText =
-          payload.status === "no_match" ? getNoMatchGuidance(question) : payload.answer;
-
-        assistantMessage = {
-          id: crypto.randomUUID(),
-          role: "assistant",
-          text: answerText,
-          feedback:
-            typeof payload.interactionId === "string" && payload.interactionId.length > 0
-              ? {
-                  interactionId: payload.interactionId,
-                  state: "idle",
-                }
-              : undefined,
-        };
+        const payloadLinks = sanitizeLinks(payload.links);
+        if (payload.status === "no_match") {
+          assistantMessage = {
+            id: crypto.randomUUID(),
+            role: "assistant",
+            text: getNoMatchGuidance(question),
+            links: mergeLinks(payloadLinks, getContextualLinks(question)),
+            noMatchSuggestions: [
+              "How do I reset my password?",
+              "How can I contact support?",
+              "Are there platform fees?",
+              "When do locum physicians get paid?",
+            ],
+            supportEmail: "support@locvm.ca",
+            feedback:
+              typeof payload.interactionId === "string" && payload.interactionId.length > 0
+                ? {
+                    interactionId: payload.interactionId,
+                    state: "idle",
+                  }
+                : undefined,
+          };
+        } else {
+          assistantMessage = {
+            id: crypto.randomUUID(),
+            role: "assistant",
+            text: payload.answer,
+            links: payloadLinks,
+            feedback:
+              typeof payload.interactionId === "string" && payload.interactionId.length > 0
+                ? {
+                    interactionId: payload.interactionId,
+                    state: "idle",
+                  }
+                : undefined,
+          };
+        }
       }
     } catch {
       assistantMessage = {
         id: crypto.randomUUID(),
         role: "assistant",
         text: getFallbackReply(question),
+        links: getContextualLinks(question),
       };
     }
 
@@ -349,8 +463,14 @@ export default function Home() {
         aria-hidden={!isOpen}
       >
         <header className={styles.widgetHeader}>
-          <div>
+          <div className={styles.headerCopy}>
             <p className={styles.widgetTitle}>Chat with us</p>
+            <a className={styles.followUpLink} href="mailto:support@locvm.ca">
+              <span className={styles.followUpIcon} aria-hidden>
+                ↗
+              </span>
+              Need follow-up?
+            </a>
           </div>
           <button
             type="button"
@@ -361,10 +481,6 @@ export default function Home() {
             ×
           </button>
         </header>
-        <p className={styles.widgetDisclaimer}>
-          This is an automated assistant, not a live person. For direct help,{" "}
-          <a href="mailto:support@locvm.ca">support@locvm.ca</a>.
-        </p>
 
         <div className={styles.messages}>
           {messages.map((message) => (
@@ -377,6 +493,30 @@ export default function Home() {
               }`}
             >
               <p>{message.text}</p>
+              {message.links?.length ? (
+                <div className={styles.messageLinks}>
+                  {message.links.map((link) => (
+                    <a key={`${message.id}-${link.href}`} href={link.href} className={styles.messageLink}>
+                      {link.label}
+                    </a>
+                  ))}
+                </div>
+              ) : null}
+              {message.noMatchSuggestions?.length ? (
+                <>
+                  <ul className={styles.suggestionList}>
+                    {message.noMatchSuggestions.map((item) => (
+                      <li key={item}>{item}</li>
+                    ))}
+                  </ul>
+                  {message.supportEmail ? (
+                    <p className={styles.suggestionSupport}>
+                      For direct help, email{" "}
+                      <a href={`mailto:${message.supportEmail}`}>{message.supportEmail}</a>.
+                    </p>
+                  ) : null}
+                </>
+              ) : null}
               {message.role === "assistant" && message.feedback ? (
                 <div className={styles.feedbackRow}>
                   <p className={styles.feedbackPrompt}>Did this help?</p>

@@ -13,7 +13,7 @@ Use this checklist during internal testing before release.
 - [ ] Launcher is visible in bottom-right and reads `Questions? Ask Us`.
 - [ ] Launcher icon is visible and button is easy to understand for non-technical users.
 - [ ] Widget opens and closes from launcher and close button.
-- [ ] Disclaimer text is visible: automated assistant + `support@locvm.ca`.
+- [ ] Header follow-up link is visible and opens `mailto:support@locvm.ca`.
 - [ ] Keyboard flow works: focus input, type, send with Enter.
 - [ ] On mobile width, launcher and widget remain fully visible.
 

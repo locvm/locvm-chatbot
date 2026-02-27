@@ -1,7 +1,13 @@
+export type FaqLink = {
+  label: string;
+  href: string;
+};
+
 export type FAQ = {
   id: string;
   question: string;
   answer: string;
+  links?: FaqLink[];
   keywords?: string[];
   synonyms?: string[];
   category?: string;
@@ -143,6 +149,7 @@ export const faqs: FAQ[] = [
     question: "I want a locum opening in Toronto. Where should I look?",
     answer:
       "Please go to the search page and look through available openings using either the list view or the map view.",
+    links: [{ label: "Browse openings", href: "/search" }],
     category: "search",
     keywords: [
       "locum in toronto",
@@ -703,6 +710,10 @@ export const faqs: FAQ[] = [
     question: "How do I reset my password?",
     answer:
       "Open reset-password, submit your email, use the link sent to your inbox, then set a new password.",
+    links: [
+      { label: "Reset password", href: "/reset-password" },
+      { label: "Go to login", href: "/login" },
+    ],
     category: "account",
     keywords: [
       "reset password",

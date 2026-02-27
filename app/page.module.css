@@ -100,7 +100,7 @@
   border: 1px solid rgba(15, 23, 42, 0.08);
   box-shadow: 0 24px 48px -24px rgba(15, 23, 42, 0.45);
   display: grid;
-  grid-template-rows: auto auto 1fr auto;
+  grid-template-rows: auto 1fr auto;
   opacity: 0;
   transform: translateY(16px) scale(0.98);
   pointer-events: none;
@@ -122,24 +122,36 @@
   gap: 0.75rem;
 }
 
+.headerCopy {
+  display: grid;
+  gap: 0.2rem;
+}
+
 .widgetTitle {
   font-weight: 700;
   color: var(--slate-900);
 }
 
-.widgetDisclaimer {
-  margin: 0;
-  padding: 0.65rem 1rem 0.7rem;
-  border-bottom: 1px solid var(--slate-200);
-  background: #f8fafc;
-  font-size: 0.77rem;
-  line-height: 1.45;
-  color: var(--slate-700);
+.followUpLink {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: var(--teal-strong);
+  width: fit-content;
 }
 
-.widgetDisclaimer a {
-  color: var(--teal-strong);
-  font-weight: 700;
+.followUpIcon {
+  width: 16px;
+  height: 16px;
+  border-radius: 999px;
+  background: rgba(13, 148, 136, 0.12);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.72rem;
+  line-height: 1;
 }
 
 .iconButton {
@@ -172,7 +184,49 @@
 
 .message p {
   margin: 0;
-  white-space: pre-line;
+}
+
+.messageLinks {
+  margin-top: 0.55rem;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}
+
+.messageLink {
+  display: inline-flex;
+  align-items: center;
+  border-radius: 999px;
+  border: 1px solid rgba(13, 148, 136, 0.22);
+  background: rgba(13, 148, 136, 0.1);
+  color: var(--teal-strong);
+  font-size: 0.78rem;
+  font-weight: 700;
+  line-height: 1;
+  text-decoration: none;
+  padding: 0.34rem 0.62rem;
+}
+
+.suggestionList {
+  margin: 0.55rem 0 0;
+  padding-left: 1.1rem;
+  display: grid;
+  gap: 0.25rem;
+}
+
+.suggestionList li {
+  line-height: 1.4;
+}
+
+.suggestionSupport {
+  margin-top: 0.55rem !important;
+  font-size: 0.88rem;
+  color: var(--slate-700);
+}
+
+.suggestionSupport a {
+  color: var(--teal-strong);
+  font-weight: 700;
 }
 
 .assistantMessage {
@@ -185,6 +239,10 @@
   align-self: flex-end;
   background: var(--teal);
   color: var(--white);
+}
+
+.messageLink:hover {
+  text-decoration: underline;
 }
 
 .feedbackRow {

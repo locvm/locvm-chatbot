@@ -127,6 +127,7 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
       {
         interactionId,
         answer: result.answer,
+        links: result.links,
         matchedFaqId: result.matchedFaqId,
         matchScore: result.matchScore,
         status: result.status,
