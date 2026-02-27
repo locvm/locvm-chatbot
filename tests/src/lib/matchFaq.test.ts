@@ -21,6 +21,36 @@ describe("matchFaq", () => {
     expect(result.links.some((link) => link.href === "/search")).toBe(true);
   });
 
+  test("matches direct login intent phrasing", () => {
+    const result = matchFaq("i dont know how to log in");
+    expect(result.status).toBe("matched");
+    expect(result.matchedFaqId).toBe("login-flow");
+  });
+
+  test("matches app-free pricing phrasing with typo", () => {
+    const result = matchFaq("is this app frree?");
+    expect(result.status).toBe("matched");
+    expect(result.matchedFaqId).toBe("is-app-free");
+  });
+
+  test("matches signup intent phrasing", () => {
+    const result = matchFaq("how do i create an account");
+    expect(result.status).toBe("matched");
+    expect(result.matchedFaqId).toBe("create-account-flow");
+  });
+
+  test("matches support intent phrasing", () => {
+    const result = matchFaq("i need help from customer service");
+    expect(result.status).toBe("matched");
+    expect(result.matchedFaqId).toBe("support-contact");
+  });
+
+  test("does not hijack domain support wording in non-support FAQs", () => {
+    const result = matchFaq("How does LOCVM support quality candidates?");
+    expect(result.status).toBe("matched");
+    expect(result.matchedFaqId).toBe("quality-candidates");
+  });
+
   test("returns no_match for empty input", () => {
     const result = matchFaq("   ");
     expect(result.status).toBe("no_match");

@@ -131,7 +131,33 @@ function getFallbackReply(question: string): string {
   }
 
   if (normalized.includes("price") || normalized.includes("cost")) {
-    return "Pricing depends on your team size and setup. I can connect you with sales for a fast quote.";
+    return "LOCVM is free during beta, and fee logic is tied to confirmed matches rather than account creation or posting.";
+  }
+
+  if (
+    normalized.includes("free") ||
+    normalized.includes("fees") ||
+    normalized.includes("pricing")
+  ) {
+    return "LOCVM is free during beta, and fee logic is tied to confirmed matches rather than account creation or posting.";
+  }
+
+  if (
+    normalized.includes("login") ||
+    normalized.includes("log in") ||
+    normalized.includes("sign in") ||
+    normalized.includes("signin")
+  ) {
+    return "Go to login, enter your email and password, then sign in. If you cannot access your account, use reset-password and follow the email link.";
+  }
+
+  if (
+    normalized.includes("sign up") ||
+    normalized.includes("signup") ||
+    normalized.includes("register") ||
+    normalized.includes("create account")
+  ) {
+    return "Use the sign-up flow, verify your email, then complete onboarding before applying to postings or creating them.";
   }
 
   if (normalized.includes("demo") || normalized.includes("tour")) {
@@ -139,9 +165,12 @@ function getFallbackReply(question: string): string {
   }
 
   if (
-    normalized.includes("help") ||
-    normalized.includes("support") ||
-    normalized.includes("contact")
+    normalized.includes("contact support") ||
+    normalized.includes("customer service") ||
+    normalized.includes("help me") ||
+    normalized.includes("need help") ||
+    normalized.includes("speak to someone") ||
+    normalized.includes("talk to someone")
   ) {
     return "Support is available through our team contact form, and we usually respond quickly during business hours.";
   }
@@ -168,6 +197,34 @@ function getNoMatchGuidance(question: string): string {
       normalized.includes("opening"))
   ) {
     return "For locum openings in Toronto, please go to the search page and browse opportunities in the list view or map view.";
+  }
+
+  if (
+    normalized.includes("login") ||
+    normalized.includes("log in") ||
+    normalized.includes("sign in") ||
+    normalized.includes("signin")
+  ) {
+    return "Try: 'How do I log in?' or 'How do I reset my password?'";
+  }
+
+  if (
+    normalized.includes("free") ||
+    normalized.includes("fees") ||
+    normalized.includes("pricing") ||
+    normalized.includes("price") ||
+    normalized.includes("cost")
+  ) {
+    return "Try: 'Is this app free?' or 'Are there platform fees?'";
+  }
+
+  if (
+    normalized.includes("sign up") ||
+    normalized.includes("signup") ||
+    normalized.includes("register") ||
+    normalized.includes("create account")
+  ) {
+    return "Try: 'How do I create an account?' or 'Do I need to verify my email before onboarding?'";
   }
 
   if (

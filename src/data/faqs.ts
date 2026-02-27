@@ -76,7 +76,7 @@ export const faqs: FAQ[] = [
     id: "platform-fees",
     question: "Are there platform fees?",
     answer:
-      "Current UI/FAQ says LOCVM is free in beta, and fee logic is tied to confirmed matches rather than account creation or posting.",
+      "LOCVM is free during beta, and fee logic is tied to confirmed matches rather than account creation or posting.",
     category: "pricing",
     keywords: [
       "fees",
@@ -89,6 +89,24 @@ export const faqs: FAQ[] = [
     source: "src/app/(main)/(legal)/faq/page.jsx",
     confidence: "high",
     notes: "Merged duplicate fee questions.",
+  },
+  {
+    id: "is-app-free",
+    question: "Is this app free?",
+    answer:
+      "LOCVM is free during beta, and fee logic is tied to confirmed matches rather than account creation or posting.",
+    category: "pricing",
+    keywords: [
+      "free",
+      "app free",
+      "pricing",
+      "fees",
+      "cost",
+      "beta",
+    ],
+    source: "src/app/(main)/(legal)/faq/page.jsx",
+    confidence: "high",
+    notes: "Added for direct free/pricing phrasing used in chatbot.",
   },
   {
     id: "is-locum-only",
@@ -704,6 +722,48 @@ export const faqs: FAQ[] = [
       "src/data/prodDataCleaned/locum.reservations.formatted.json; docs/OPEN-LOBBY-MODEL.md; src/lib/actions/reservations.actions.js",
     confidence: "high",
     notes: "",
+  },
+  {
+    id: "create-account-flow",
+    question: "How do I create an account?",
+    answer:
+      "Use the sign-up flow, verify your email, then complete onboarding before applying to postings or creating them.",
+    category: "account",
+    keywords: [
+      "sign up",
+      "signup",
+      "register",
+      "create account",
+      "make account",
+      "new account",
+    ],
+    source:
+      "src/app/(standalone)/onboarding/email-verification/page.jsx; src/app/(main)/(auth)/auth-verification/page.jsx",
+    confidence: "high",
+    notes: "Added for common account-creation questions.",
+  },
+  {
+    id: "login-flow",
+    question: "How do I log in?",
+    answer:
+      "Go to the login page, enter your email and password, then sign in. If you cannot access your account, use reset-password and follow the email link.",
+    links: [
+      { label: "Go to login", href: "/login" },
+      { label: "Reset password", href: "/reset-password" },
+    ],
+    category: "account",
+    keywords: [
+      "login",
+      "log in",
+      "sign in",
+      "account access",
+      "can t log in",
+      "cannot log in",
+    ],
+    source:
+      "src/app/(main)/(auth)/login/page.jsx; src/app/(main)/(auth)/reset-password/page.jsx",
+    confidence: "high",
+    notes: "Added for direct login intent.",
   },
   {
     id: "reset-password-flow",
