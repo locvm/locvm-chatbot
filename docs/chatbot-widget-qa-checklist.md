@@ -13,6 +13,7 @@ Use this checklist during internal testing before release.
 - [ ] Launcher is visible in bottom-right and reads `Questions? Ask Us`.
 - [ ] Launcher icon is visible and button is easy to understand for non-technical users.
 - [ ] Widget opens and closes from launcher and close button.
+- [ ] Disclaimer text is visible: automated assistant + `support@locvm.ca`.
 - [ ] Keyboard flow works: focus input, type, send with Enter.
 - [ ] On mobile width, launcher and widget remain fully visible.
 
@@ -23,7 +24,9 @@ Use this checklist during internal testing before release.
 - [ ] `Are there platform fees?` returns pricing/fees guidance.
 - [ ] `When do locum physicians get paid?` returns payment timing answer.
 - [ ] `How can I contact support?` returns support/contact answer.
+- [ ] `I want a locum in Toronto` returns guidance to use search page/list/map.
 - [ ] `hello` returns a friendly greeting.
+- [ ] `This is not working` or `you are wrong` returns human-support handoff (`support@locvm.ca`).
 - [ ] A clearly unrelated prompt (example: `What is the weather in Paris?`) returns guided no-match suggestions.
 
 ## Feedback Flow Checks

@@ -31,14 +31,48 @@ type FaqApiResponse = {
   error?: string;
 };
 
+const HUMAN_HELP_MESSAGE =
+  "I'm sorry this has been frustrating. We're happy to help you in person. Please contact support@locvm.ca and our team will follow up.";
+
 const starterMessage: Message = {
   id: "start",
   role: "assistant",
-  text: "Hi, I'm the LOCVM assistant. Ask me anything and I'll point you in the right direction.",
+  text: "Hi, I'm the LOCVM automated assistant (not a live person). Ask me a question and I'll do my best to help. If you need direct help, email support@locvm.ca.",
 };
+
+function isFrustrationIntent(question: string): boolean {
+  const normalized = question.trim().toLowerCase();
+  const frustrationPhrases = [
+    "not working",
+    "isn't working",
+    "doesn't work",
+    "does not work",
+    "you are wrong",
+    "you're wrong",
+    "wrong",
+    "i don't like",
+    "this is frustrating",
+    "i am frustrated",
+    "frustrated",
+    "this is useless",
+    "bad answer",
+  ];
+
+  return frustrationPhrases.some((phrase) => normalized.includes(phrase));
+}
 
 function getFallbackReply(question: string): string {
   const normalized = question.trim().toLowerCase();
+
+  if (
+    normalized.includes("toronto") &&
+    (normalized.includes("locum") ||
+      normalized.includes("local") ||
+      normalized.includes("job") ||
+      normalized.includes("opening"))
+  ) {
+    return "For locum openings in Toronto, please go to the search page and browse opportunities in the list view or map view.";
+  }
 
   if (normalized.includes("price") || normalized.includes("cost")) {
     return "Pricing depends on your team size and setup. I can connect you with sales for a fast quote.";
@@ -61,21 +95,31 @@ function getFallbackReply(question: string): string {
     normalized.includes("hi") ||
     normalized.includes("hey")
   ) {
-    return "Hey there. Tell me what you're trying to do and I'll guide you.";
+    return "Hey there. Tell me what you're trying to do and I'll guide you. I'm an automated assistant, and you can always email support@locvm.ca for direct help.";
   }
 
-  return "Thanks for the question. This widget is in prototype mode, but this is where helpful answers will appear.";
+  return "Thanks for your question. I'm an automated assistant, and if you need direct help please email support@locvm.ca.";
 }
 
 function getNoMatchGuidance(question: string): string {
   const normalized = question.trim().toLowerCase();
 
   if (
+    normalized.includes("toronto") &&
+    (normalized.includes("locum") ||
+      normalized.includes("local") ||
+      normalized.includes("job") ||
+      normalized.includes("opening"))
+  ) {
+    return "For locum openings in Toronto, please go to the search page and browse opportunities in the list view or map view.";
+  }
+
+  if (
     normalized.includes("hello") ||
     normalized.includes("hi") ||
     normalized.includes("hey")
   ) {
-    return "Hi there. You can ask me things like password reset, account access, pricing, support, and payments.";
+    return "Hi there. You can ask me things like password reset, account access, pricing, support, and payments. For direct help, email support@locvm.ca.";
   }
 
   return [
@@ -85,6 +129,7 @@ function getNoMatchGuidance(question: string): string {
     "How can I contact support?",
     "Are there platform fees?",
     "When do locum physicians get paid?",
+    "For direct help, email support@locvm.ca.",
   ].join("\n");
 }
 
@@ -126,6 +171,20 @@ export default function Home() {
     setDraft("");
     setIsOpen(true);
     setPendingReplies((current) => current + 1);
+
+    if (isFrustrationIntent(question)) {
+      await wait(700);
+      setMessages((current) => [
+        ...current,
+        {
+          id: crypto.randomUUID(),
+          role: "assistant",
+          text: HUMAN_HELP_MESSAGE,
+        },
+      ]);
+      setPendingReplies((current) => Math.max(0, current - 1));
+      return;
+    }
 
     const startedAt = Date.now();
 
@@ -277,7 +336,6 @@ export default function Home() {
         <header className={styles.widgetHeader}>
           <div>
             <p className={styles.widgetTitle}>Chat with us</p>
-            <p className={styles.widgetSubtitle}>FAQ API connected</p>
           </div>
           <button
             type="button"
@@ -288,6 +346,10 @@ export default function Home() {
             ×
           </button>
         </header>
+        <p className={styles.widgetDisclaimer}>
+          This is an automated assistant, not a live person. For direct help,{" "}
+          <a href="mailto:support@locvm.ca">support@locvm.ca</a>.
+        </p>
 
         <div className={styles.messages}>
           {messages.map((message) => (

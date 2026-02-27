@@ -95,7 +95,7 @@ Success response (200):
 
 ```json
 {
-  "interactionId": "clx123...", 
+  "interactionId": "clx123...",
   "answer": "Use the Forgot Password link on the sign-in page...",
   "matchedFaqId": "reset-password",
   "matchScore": 7,
@@ -116,6 +116,18 @@ No-match response (200):
 ```
 
 `interactionId` can be `null` when FAQ logging is temporarily unavailable; in that case feedback updates cannot be tied to that response.
+
+### Data Captured
+
+- On each `POST /api/faq` call, the app attempts to store:
+  - `userId`
+  - `question`
+  - `matchedFaqId`
+  - `matchScore`
+  - `createdAt`
+- On each `POST /api/faq/feedback` call, the app attempts to update:
+  - `wasHelpful` on the related interaction record
+- If database connectivity is temporarily unavailable, the user still gets a chat answer but that interaction may not be persisted.
 
 Validation error (400):
 
@@ -173,10 +185,14 @@ Validation error (400):
 - A simple floating chatbot widget is available on `/`:
   - circular launcher in the bottom-right
   - open/close panel with chat history
+  - visible disclaimer that this is an automated assistant (not a live person)
+  - direct support contact: `support@locvm.ca`
   - message composer
   - typing indicator (animated three dots) before assistant replies
 - Current behavior:
   - sends questions to `POST /api/faq` and renders real matched/no-match answers
+  - includes city intent handling for prompts like "I want a locum in Toronto"
+  - detects frustration phrases (for example: "not working", "you're wrong") and immediately hands off to human support contact
   - uses guided no-match suggestions for unsupported prompts
   - saves `Did this help?` feedback with `POST /api/faq/feedback`
   - if FAQ API call fails, falls back to local prototype reply logic

@@ -139,6 +139,30 @@ export const faqs: FAQ[] = [
     notes: "",
   },
   {
+    id: "find-locum-openings-in-toronto",
+    question: "I want a locum opening in Toronto. Where should I look?",
+    answer:
+      "Please go to the search page and look through available openings using either the list view or the map view.",
+    category: "search",
+    keywords: [
+      "locum in toronto",
+      "local locum",
+      "toronto opening",
+      "search page",
+      "list view",
+      "map view",
+      "job in toronto",
+    ],
+    synonyms: [
+      "i want a locum in toronto",
+      "looking for a local locum",
+      "find jobs near me",
+    ],
+    source: "product decision",
+    confidence: "high",
+    notes: "Added for common city-based intent in chatbot.",
+  },
+  {
     id: "qualification-verification",
     question: "How are qualifications verified?",
     answer:
