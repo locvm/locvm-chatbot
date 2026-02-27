@@ -1,117 +1,170 @@
 # locvm-chatbot
 
-A minimal FAQ chatbot MVP built with Next.js (App Router), TypeScript, Prisma, and PostgreSQL. Designed for serverless deployment on Vercel.
+Minimal FAQ chatbot MVP scaffold built with Next.js (App Router), TypeScript, Prisma, and PostgreSQL.
+It is designed for simple request/response APIs and internal validation before expanding scope.
+This repo is intentionally non-AI: no embeddings/LLM ranking and no real-time transport.
+No WebSockets are used; only HTTP serverless functions.
 
-> **Note:** Business logic, FAQ matching, and full API responses are intentionally not implemented yet. This repository contains only the project scaffold, configuration, and placeholders for the next development phase.
+## Mini Accepted Plan
 
----
+1. Define 20-30 core FAQ Q&As and hardcode structured answers.
+2. Build one API endpoint that receives a question and returns the closest matching FAQ answer (simple matching; no AI).
+3. Log each interaction (`user_id`, question, matched FAQ, timestamp) to Postgres via Prisma.
+4. Add `Did this help?` (`yes` / `no`) feedback per interaction.
+5. Host on Vercel using HTTP serverless functions only (no WebSockets), with auth + rate limiting to reduce abuse/overages.
+6. Test internally and review logs after 30-90 days to decide next improvements.
 
-## Project Purpose
+## Repo Structure
 
-Provide a structured starting point for a FAQ chatbot that:
-- Accepts user questions via HTTP API endpoints
-- Logs interactions to a PostgreSQL database via Prisma
-- Returns matched FAQ answers (matching logic to be implemented)
-- Records user feedback on answer helpfulness
+- `app/api/faq/route.ts`
+  - Placeholder route handlers (`GET`, `POST`) currently return `501 Not Implemented`.
+  - Intended to receive a question and return best FAQ match.
+- `app/api/faq/feedback/route.ts`
+  - Placeholder `POST` handler returns `501 Not Implemented`.
+  - Intended to record helpfulness feedback tied to an interaction.
+- `src/data/faqs.ts`
+  - Defines `FAQ` type and exports `faqs` array (currently empty).
+  - Intended source of 20-30 curated FAQ entries.
+- `src/lib/db.ts`
+  - Prisma singleton placeholder pattern for app-wide DB access.
+  - Notes indicate Prisma adapter-based initialization is still TODO.
 
----
+## Setup (Local)
 
-## Tech Stack
-
-- **Framework:** Next.js 16 (App Router)
-- **Language:** TypeScript
-- **ORM:** Prisma
-- **Database:** PostgreSQL (online instance)
-- **Deployment:** Vercel (serverless HTTP only, no WebSockets)
-
----
-
-## Setup Steps
-
-### 1. Clone the repository
-
-```bash
-git clone https://github.com/locvm/locvm-chatbot.git
-cd locvm-chatbot
-```
-
-### 2. Install dependencies
+Recommended Node.js: `20.x LTS`.
 
 ```bash
+# 1) install dependencies
 npm install
-```
 
-### 3. Configure environment variables
-
-```bash
-cp .env.example .env
-```
-
-Edit `.env` and set your PostgreSQL connection string:
-
-```
+# 2) create local environment file
+cat > .env <<'ENV'
 DATABASE_URL="postgresql://USER:PASSWORD@HOST:PORT/DATABASE?schema=public"
-```
+ENV
 
-### 4. Generate the Prisma client
-
-```bash
+# 3) generate Prisma client
 npx prisma generate
-```
 
-### 5. Run database migrations
-
-```bash
+# 4) run migrations
 npx prisma migrate dev --name init
-```
 
-### 6. Start the development server
-
-```bash
+# 5) start dev server
 npm run dev
 ```
 
----
+Optional DB inspection:
 
-## Vercel Deployment
-
-1. Push the repository to GitHub.
-2. Import the project in the [Vercel dashboard](https://vercel.com/new).
-3. Add `DATABASE_URL` as an environment variable in the Vercel project settings.
-4. Deploy – Vercel will automatically build and serve the Next.js app as serverless functions.
-
----
-
-## Project Structure
-
-```
-/app
-  /api
-    /faq
-      route.ts          ← FAQ query endpoint (TODO)
-    /faq/feedback
-      route.ts          ← Feedback recording endpoint (TODO)
-  layout.tsx
-  page.tsx
-
-/src
-  /data
-    faqs.ts             ← FAQ data array and FAQ type definition
-  /lib
-    db.ts               ← PrismaClient singleton
-    matchFaq.ts         ← FAQ matching logic (TODO)
-
-/prisma
-  schema.prisma         ← Database schema (InteractionLog model)
+```bash
+npx prisma studio
 ```
 
----
+## Setup (Vercel)
 
-## TODO Markers
+1. Create/import the project in Vercel.
+2. Add `DATABASE_URL` in Project Settings -> Environment Variables.
+3. Redeploy after setting the variable.
 
-The following items are clearly marked `TODO` in the codebase and are scheduled for the next phase:
+Notes:
+- Deployment model is serverless HTTP functions only.
+- No WebSocket infrastructure is required for this MVP.
 
-- `app/api/faq/route.ts` – implement question matching and response
-- `app/api/faq/feedback/route.ts` – implement feedback recording
-- `src/lib/matchFaq.ts` – implement matching algorithm
-- `src/data/faqs.ts` – populate with real FAQ entries
+## API Contract (Documentation Only)
+
+Current status: route files are placeholders and return `501`; shapes below define the intended contract.
+
+### `POST /api/faq`
+
+Request JSON:
+
+```json
+{
+  "user_id": "user_123",
+  "question": "How do I reset my password?"
+}
+```
+
+Success response JSON (200):
+
+```json
+{
+  "interaction_id": "clx123...",
+  "matched": true,
+  "faq": {
+    "id": "password_reset",
+    "question": "How do I reset my password?",
+    "answer": "Use the Forgot Password link on the sign-in page."
+  },
+  "match_score": 87
+}
+```
+
+No-match response JSON (200):
+
+```json
+{
+  "interaction_id": "clx124...",
+  "matched": false,
+  "faq": null,
+  "match_score": 0
+}
+```
+
+Validation error response JSON (400):
+
+```json
+{
+  "error": "invalid_request"
+}
+```
+
+### `POST /api/faq/feedback`
+
+Request JSON:
+
+```json
+{
+  "interaction_id": "clx123...",
+  "helpful": true
+}
+```
+
+Success response JSON (200):
+
+```json
+{
+  "ok": true,
+  "interaction_id": "clx123...",
+  "helpful": true
+}
+```
+
+Validation/not-found error examples:
+
+```json
+{
+  "error": "invalid_request"
+}
+```
+
+```json
+{
+  "error": "interaction_not_found"
+}
+```
+
+## Guardrails / Considerations
+
+- HTTP-only transport keeps deployment simpler and cheaper for FAQ-style request/response behavior.
+- Auth + rate limiting are required to reduce abuse risk and control serverless/database spend.
+- Data minimization: store only what is needed for quality review (`user_id`, question text, match metadata, feedback, timestamps).
+- Do not log secrets or sensitive free-form payloads beyond the needed question string.
+- Optional retention policy: keep logs for 90 days, then archive/delete.
+
+## Next Steps (Implementation Checklist)
+
+- [ ] Populate `src/data/faqs.ts` with 20-30 curated FAQ entries.
+- [ ] Implement simple FAQ matcher (`src/lib/matchFaq.ts`).
+- [ ] Implement `/api/faq` logging write via Prisma.
+- [ ] Implement `/api/faq/feedback` helpfulness update.
+- [ ] Add auth and rate limiting at API boundary.
+- [ ] Add minimal admin script/page to review `no_match` and low-helpfulness interactions.
