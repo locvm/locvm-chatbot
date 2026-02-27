@@ -51,11 +51,16 @@ Environment (`.env`):
 
 ```env
 DATABASE_URL="postgres://..."
+# Optional: auto | accelerate (default: auto)
+PRISMA_CONNECTION_MODE="auto"
 ```
 
 Notes:
 - Prisma client here is configured to use Prisma Accelerate-style connection handling.
-- If `DATABASE_URL` is `postgres://` or `postgresql://`, runtime code converts it to `prisma+postgres://` and expects an API key in the URL (`api_key` query param or password field).
+- Connection mode behavior:
+  - `auto` (default): use Prisma Accelerate when API key exists.
+  - `accelerate`: force Prisma Accelerate (requires API key).
+  - This generated Prisma client currently requires Accelerate transport for runtime DB access.
 
 Optional DB UI:
 
@@ -90,7 +95,7 @@ Success response (200):
 
 ```json
 {
-  "interactionId": "clx123...",
+  "interactionId": "clx123...", 
   "answer": "Use the Forgot Password link on the sign-in page...",
   "matchedFaqId": "reset-password",
   "matchScore": 7,
@@ -102,13 +107,15 @@ No-match response (200):
 
 ```json
 {
-  "interactionId": "clx124...",
+  "interactionId": null,
   "answer": "Sorry, I could not find a matching FAQ answer. Please contact support for help.",
   "matchedFaqId": null,
   "matchScore": null,
   "status": "no_match"
 }
 ```
+
+`interactionId` can be `null` when FAQ logging is temporarily unavailable; in that case feedback updates cannot be tied to that response.
 
 Validation error (400):
 
@@ -170,8 +177,10 @@ Validation error (400):
   - typing indicator (animated three dots) before assistant replies
 - Current behavior:
   - sends questions to `POST /api/faq` and renders real matched/no-match answers
+  - uses guided no-match suggestions for unsupported prompts
   - saves `Did this help?` feedback with `POST /api/faq/feedback`
   - if FAQ API call fails, falls back to local prototype reply logic
+  - launcher text is explicit for non-technical users: `Questions? Ask Us`
 
 Local test:
 
@@ -179,7 +188,11 @@ Local test:
 npm run dev
 ```
 
-Open `http://localhost:3000`, click `Chat`, and send a few messages.
+Open `http://localhost:3000`, click `Questions? Ask Us`, and send a few messages.
+
+QA checklist:
+
+- `docs/chatbot-widget-qa-checklist.md`
 
 ## Next Steps
 

@@ -67,6 +67,27 @@ function getFallbackReply(question: string): string {
   return "Thanks for the question. This widget is in prototype mode, but this is where helpful answers will appear.";
 }
 
+function getNoMatchGuidance(question: string): string {
+  const normalized = question.trim().toLowerCase();
+
+  if (
+    normalized.includes("hello") ||
+    normalized.includes("hi") ||
+    normalized.includes("hey")
+  ) {
+    return "Hi there. You can ask me things like password reset, account access, pricing, support, and payments.";
+  }
+
+  return [
+    "I couldn't find that exact answer yet.",
+    "Try one of these common questions:",
+    "How do I reset my password?",
+    "How can I contact support?",
+    "Are there platform fees?",
+    "When do locum physicians get paid?",
+  ].join("\n");
+}
+
 function wait(ms: number): Promise<void> {
   return new Promise((resolve) => {
     window.setTimeout(resolve, ms);
@@ -127,7 +148,7 @@ export default function Home() {
       }
 
       const answerText =
-        payload.status === "no_match" ? getFallbackReply(question) : payload.answer;
+        payload.status === "no_match" ? getNoMatchGuidance(question) : payload.answer;
 
       assistantMessage = {
         id: crypto.randomUUID(),
@@ -363,11 +384,27 @@ export default function Home() {
       <button
         type="button"
         className={`${styles.launcher} ${isOpen ? styles.launcherOpen : ""}`}
-        aria-label={isOpen ? "Close chat" : "Open chat"}
+        aria-label={isOpen ? "Close question assistant" : "Open question assistant"}
         aria-expanded={isOpen}
         onClick={() => setIsOpen((current) => !current)}
       >
-        {isOpen ? "×" : "Chat"}
+        {isOpen ? (
+          <>
+            <span className={styles.launcherIcon} aria-hidden>
+              ×
+            </span>
+            <span>Close Assistant</span>
+          </>
+        ) : (
+          <>
+            <span className={styles.launcherIcon} aria-hidden>
+              <svg viewBox="0 0 24 24" focusable="false">
+                <path d="M4 5.5A2.5 2.5 0 0 1 6.5 3h11A2.5 2.5 0 0 1 20 5.5v7A2.5 2.5 0 0 1 17.5 15H10l-4.5 4v-4H6.5A2.5 2.5 0 0 1 4 12.5v-7Z" />
+              </svg>
+            </span>
+            <span>Questions? Ask Us</span>
+          </>
+        )}
       </button>
     </div>
   );

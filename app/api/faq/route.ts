@@ -9,6 +9,8 @@ type FaqRequestBody = {
   question: string;
 };
 
+const MAX_WRITE_ATTEMPTS = 2;
+
 function isValidFaqRequestBody(input: unknown): input is FaqRequestBody {
   if (!input || typeof input !== "object") {
     return false;
@@ -16,6 +18,53 @@ function isValidFaqRequestBody(input: unknown): input is FaqRequestBody {
 
   const candidate = input as Partial<FaqRequestBody>;
   return typeof candidate.userId === "string" && typeof candidate.question === "string";
+}
+
+function isTransientDbError(error: unknown): boolean {
+  if (!(error instanceof Error)) {
+    return false;
+  }
+
+  const text = `${error.name} ${error.message}`.toLowerCase();
+  return (
+    text.includes("econnreset") ||
+    text.includes("etimedout") ||
+    text.includes("eai_again") ||
+    text.includes("enotfound") ||
+    text.includes("p1001") ||
+    text.includes("fetch failed") ||
+    text.includes("socket hang up")
+  );
+}
+
+async function wait(ms: number): Promise<void> {
+  await new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+async function createInteractionWithRetry(data: {
+  userId: string;
+  question: string;
+  matchedFaqId: string | null;
+  matchScore: number | null;
+}): Promise<string> {
+  let lastError: unknown = null;
+
+  for (let attempt = 1; attempt <= MAX_WRITE_ATTEMPTS; attempt += 1) {
+    try {
+      const interaction = await getDb().interactionLog.create({ data });
+      return interaction.id;
+    } catch (error) {
+      lastError = error;
+
+      if (!isTransientDbError(error) || attempt === MAX_WRITE_ATTEMPTS) {
+        throw error;
+      }
+
+      await wait(120 * attempt);
+    }
+  }
+
+  throw lastError;
 }
 
 export async function GET(_req: NextRequest): Promise<NextResponse> {
@@ -41,15 +90,12 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
 
     let interactionId: string | null = null;
     try {
-      const interaction = await getDb().interactionLog.create({
-        data: {
-          userId,
-          question,
-          matchedFaqId: result.matchedFaqId,
-          matchScore: result.matchScore,
-        },
+      interactionId = await createInteractionWithRetry({
+        userId,
+        question,
+        matchedFaqId: result.matchedFaqId,
+        matchScore: result.matchScore,
       });
-      interactionId = interaction.id;
     } catch (error) {
       // Return FAQ response even when DB logging is unavailable.
       console.error("faq_log_write_failed", error);

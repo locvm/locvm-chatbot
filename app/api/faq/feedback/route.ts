@@ -8,6 +8,8 @@ type FeedbackRequestBody = {
   helpful: boolean;
 };
 
+const MAX_WRITE_ATTEMPTS = 2;
+
 function isValidFeedbackRequestBody(input: unknown): input is FeedbackRequestBody {
   if (!input || typeof input !== "object") {
     return false;
@@ -15,6 +17,51 @@ function isValidFeedbackRequestBody(input: unknown): input is FeedbackRequestBod
 
   const candidate = input as Partial<FeedbackRequestBody>;
   return typeof candidate.interactionId === "string" && typeof candidate.helpful === "boolean";
+}
+
+function isTransientDbError(error: unknown): boolean {
+  if (!(error instanceof Error)) {
+    return false;
+  }
+
+  const text = `${error.name} ${error.message}`.toLowerCase();
+  return (
+    text.includes("econnreset") ||
+    text.includes("etimedout") ||
+    text.includes("eai_again") ||
+    text.includes("enotfound") ||
+    text.includes("p1001") ||
+    text.includes("fetch failed") ||
+    text.includes("socket hang up")
+  );
+}
+
+async function wait(ms: number): Promise<void> {
+  await new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+async function updateFeedbackWithRetry(interactionId: string, helpful: boolean): Promise<number> {
+  let lastError: unknown = null;
+
+  for (let attempt = 1; attempt <= MAX_WRITE_ATTEMPTS; attempt += 1) {
+    try {
+      const updateResult = await getDb().interactionLog.updateMany({
+        where: { id: interactionId },
+        data: { wasHelpful: helpful },
+      });
+      return updateResult.count;
+    } catch (error) {
+      lastError = error;
+
+      if (!isTransientDbError(error) || attempt === MAX_WRITE_ATTEMPTS) {
+        throw error;
+      }
+
+      await wait(120 * attempt);
+    }
+  }
+
+  throw lastError;
 }
 
 export async function GET(_req: NextRequest): Promise<NextResponse> {
@@ -35,12 +82,8 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
       return NextResponse.json({ error: "invalid_request" }, { status: 400 });
     }
 
-    const updateResult = await getDb().interactionLog.updateMany({
-      where: { id: interactionId },
-      data: { wasHelpful: body.helpful },
-    });
-
-    if (updateResult.count === 0) {
+    const updatedCount = await updateFeedbackWithRetry(interactionId, body.helpful);
+    if (updatedCount === 0) {
       return NextResponse.json({ error: "interaction_not_found" }, { status: 404 });
     }
 
