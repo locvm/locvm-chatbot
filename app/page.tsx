@@ -53,6 +53,8 @@ type FeedbackApiResponse = {
 
 const HUMAN_HELP_MESSAGE =
   "I'm sorry this has been frustrating. We're happy to help you in person. Please contact support@locvm.ca and our team will follow up.";
+const API_UNAVAILABLE_MESSAGE =
+  "I'm having trouble reaching the FAQ service right now. Please try again in a moment or email support@locvm.ca for direct help.";
 
 const starterMessage: Message = {
   id: "start",
@@ -79,163 +81,6 @@ function isFrustrationIntent(question: string): boolean {
   ];
 
   return frustrationPhrases.some((phrase) => normalized.includes(phrase));
-}
-
-function shouldShowNoMatchSuggestions(question: string): boolean {
-  const normalized = question.trim().toLowerCase();
-  const domainSignals = [
-    "locvm",
-    "locum",
-    "opening",
-    "job",
-    "toronto",
-    "support",
-    "contact",
-    "price",
-    "cost",
-    "fee",
-    "payment",
-    "paid",
-    "jetpay",
-    "password",
-    "login",
-    "log in",
-    "sign in",
-    "signin",
-    "account",
-    "verification",
-    "onboarding",
-    "booking",
-    "posting",
-    "recruiter",
-    "physician",
-    "cancellation",
-    "cancel",
-    "deposit",
-  ];
-
-  return !domainSignals.some((signal) => normalized.includes(signal));
-}
-
-function getFallbackReply(question: string): string {
-  const normalized = question.trim().toLowerCase();
-
-  if (
-    normalized.includes("toronto") &&
-    (normalized.includes("locum") ||
-      normalized.includes("local") ||
-      normalized.includes("job") ||
-      normalized.includes("opening"))
-  ) {
-    return "For locum openings in Toronto, please go to the search page and browse opportunities in the list view or map view.";
-  }
-
-  if (normalized.includes("price") || normalized.includes("cost")) {
-    return "LOCVM is free during beta, and fee logic is tied to confirmed matches rather than account creation or posting.";
-  }
-
-  if (
-    normalized.includes("free") ||
-    normalized.includes("fees") ||
-    normalized.includes("pricing")
-  ) {
-    return "LOCVM is free during beta, and fee logic is tied to confirmed matches rather than account creation or posting.";
-  }
-
-  if (
-    normalized.includes("login") ||
-    normalized.includes("log in") ||
-    normalized.includes("sign in") ||
-    normalized.includes("signin")
-  ) {
-    return "Go to login, enter your email and password, then sign in. If you cannot access your account, use reset-password and follow the email link.";
-  }
-
-  if (
-    normalized.includes("sign up") ||
-    normalized.includes("signup") ||
-    normalized.includes("register") ||
-    normalized.includes("create account")
-  ) {
-    return "Use the sign-up flow, verify your email, then complete onboarding before applying to postings or creating them.";
-  }
-
-  if (normalized.includes("demo") || normalized.includes("tour")) {
-    return "Absolutely. I can help you schedule a quick demo to walk through key features.";
-  }
-
-  if (
-    normalized.includes("contact support") ||
-    normalized.includes("customer service") ||
-    normalized.includes("help me") ||
-    normalized.includes("need help") ||
-    normalized.includes("speak to someone") ||
-    normalized.includes("talk to someone")
-  ) {
-    return "Support is available through our team contact form, and we usually respond quickly during business hours.";
-  }
-
-  if (
-    normalized.includes("hello") ||
-    normalized.includes("hi") ||
-    normalized.includes("hey")
-  ) {
-    return "Hey there. Tell me what you're trying to do and I'll guide you. I'm an automated assistant, and you can always email support@locvm.ca for direct help.";
-  }
-
-  return "Thanks for your question. I'm an automated assistant, and if you need direct help please email support@locvm.ca.";
-}
-
-function getNoMatchGuidance(question: string): string {
-  const normalized = question.trim().toLowerCase();
-
-  if (
-    normalized.includes("toronto") &&
-    (normalized.includes("locum") ||
-      normalized.includes("local") ||
-      normalized.includes("job") ||
-      normalized.includes("opening"))
-  ) {
-    return "For locum openings in Toronto, please go to the search page and browse opportunities in the list view or map view.";
-  }
-
-  if (
-    normalized.includes("login") ||
-    normalized.includes("log in") ||
-    normalized.includes("sign in") ||
-    normalized.includes("signin")
-  ) {
-    return "Try: 'How do I log in?' or 'How do I reset my password?'";
-  }
-
-  if (
-    normalized.includes("free") ||
-    normalized.includes("fees") ||
-    normalized.includes("pricing") ||
-    normalized.includes("price") ||
-    normalized.includes("cost")
-  ) {
-    return "Try: 'Is this app free?' or 'Are there platform fees?'";
-  }
-
-  if (
-    normalized.includes("sign up") ||
-    normalized.includes("signup") ||
-    normalized.includes("register") ||
-    normalized.includes("create account")
-  ) {
-    return "Try: 'How do I create an account?' or 'Do I need to verify my email before onboarding?'";
-  }
-
-  if (
-    normalized.includes("hello") ||
-    normalized.includes("hi") ||
-    normalized.includes("hey")
-  ) {
-    return "Hi there. You can ask me things like password reset, account access, pricing, support, and payments. For direct help, email support@locvm.ca.";
-  }
-
-  return "I couldn't find that exact answer yet. Try one of these common questions:";
 }
 
 function wait(ms: number): Promise<void> {
@@ -356,22 +201,17 @@ export default function Home() {
             ? payload.interactionId
             : null;
         if (payload.status === "no_match") {
-          const showNoMatchSuggestions = shouldShowNoMatchSuggestions(question);
           assistantMessage = {
             id: crypto.randomUUID(),
             role: "assistant",
-            text: showNoMatchSuggestions
-              ? getNoMatchGuidance(question)
-              : getFallbackReply(question),
-            noMatchSuggestions: showNoMatchSuggestions
-              ? [
-                  "How do I reset my password?",
-                  "How can I contact support?",
-                  "Are there platform fees?",
-                  "When do locum physicians get paid?",
-                ]
-              : undefined,
-            supportEmail: showNoMatchSuggestions ? "support@locvm.ca" : undefined,
+            text: payload.answer,
+            noMatchSuggestions: [
+              "How do I reset my password?",
+              "How can I contact support?",
+              "Are there platform fees?",
+              "When do locum physicians get paid?",
+            ],
+            supportEmail: "support@locvm.ca",
             feedback: {
               interactionId,
               fallbackLog: feedbackContext,
@@ -395,7 +235,7 @@ export default function Home() {
       assistantMessage = {
         id: crypto.randomUUID(),
         role: "assistant",
-        text: getFallbackReply(question),
+        text: API_UNAVAILABLE_MESSAGE,
       };
     }
 

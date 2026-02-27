@@ -11,6 +11,18 @@ const COMMON_WORD_REPLACEMENTS: Record<string, string> = {
 };
 const BASIC_INTENT_RULES: Array<{ faqId: string; phrases: string[] }> = [
   {
+    faqId: "find-locum-coverage",
+    phrases: [
+      "find locum",
+      "find locums",
+      "find locum coverage",
+      "find locum physician",
+      "need locum coverage",
+      "how do i find locums",
+      "how can i find locums",
+    ],
+  },
+  {
     faqId: "reset-password-flow",
     phrases: [
       "reset password",

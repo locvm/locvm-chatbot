@@ -27,6 +27,18 @@ describe("matchFaq", () => {
     expect(result.matchedFaqId).toBe("login-flow");
   });
 
+  test("matches exact login phrasing from widget transcript", () => {
+    const result = matchFaq("how do i log in?");
+    expect(result.status).toBe("matched");
+    expect(result.matchedFaqId).toBe("login-flow");
+  });
+
+  test("matches find-locums phrasing", () => {
+    const result = matchFaq("how do i find locums?");
+    expect(result.status).toBe("matched");
+    expect(result.matchedFaqId).toBe("find-locum-coverage");
+  });
+
   test("matches app-free pricing phrasing with typo", () => {
     const result = matchFaq("is this app frree?");
     expect(result.status).toBe("matched");
