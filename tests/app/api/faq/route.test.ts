@@ -6,7 +6,7 @@ jest.mock("@/src/lib/db", () => ({
 }));
 
 const mockedGetDb = getDb as jest.MockedFunction<typeof getDb>;
-const EXPECTED_CORS_ORIGIN = "http://localhost:3000";
+const EXPECTED_CORS_ORIGIN = "https://www.locvm.ca";
 
 function makeFaqPostRequest(
   body: unknown,
@@ -17,6 +17,7 @@ function makeFaqPostRequest(
     headers: {
       "content-type": "application/json",
       "x-real-ip": ip,
+      origin: EXPECTED_CORS_ORIGIN,
     },
     body: JSON.stringify(body),
   });
@@ -65,6 +66,7 @@ describe("app/api/faq/route", () => {
     expect(response.headers.get("Access-Control-Allow-Origin")).toBe(EXPECTED_CORS_ORIGIN);
     expect(response.headers.get("Access-Control-Allow-Methods")).toBe("POST, OPTIONS");
     expect(response.headers.get("Access-Control-Allow-Headers")).toBe("Content-Type");
+    expect(response.headers.get("Vary")).toBe("Origin");
   });
 
   test("POST rejects invalid body", async () => {
@@ -94,6 +96,7 @@ describe("app/api/faq/route", () => {
     expect(response.headers.get("Access-Control-Allow-Origin")).toBe(EXPECTED_CORS_ORIGIN);
     expect(response.headers.get("Access-Control-Allow-Methods")).toBe("POST, OPTIONS");
     expect(response.headers.get("Access-Control-Allow-Headers")).toBe("Content-Type");
+    expect(response.headers.get("Vary")).toBe("Origin");
     expect(create).toHaveBeenCalledWith({
       data: expect.objectContaining({
         userId: "user-123",

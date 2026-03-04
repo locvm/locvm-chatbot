@@ -2,15 +2,9 @@ import { NextRequest, NextResponse } from "next/server";
 import { getDb } from "@/src/lib/db";
 import { matchFaq } from "@/src/lib/matchFaq";
 import { applyRateLimit, buildRateLimitHeaders } from "@/src/lib/rateLimit";
+import { buildCorsHeaders } from "@/src/lib/cors";
 
 export const runtime = "nodejs";
-
-const ALLOWED_ORIGIN = "http://localhost:3000";
-const CORS_HEADERS = {
-  "Access-Control-Allow-Origin": ALLOWED_ORIGIN,
-  "Access-Control-Allow-Methods": "POST, OPTIONS",
-  "Access-Control-Allow-Headers": "Content-Type",
-};
 
 type FaqRequestBody = {
   userId: string;
@@ -99,22 +93,10 @@ async function createInteractionWithRetry(data: {
   throw lastError;
 }
 
-function withCorsHeaders(headers?: HeadersInit): Headers {
-  const responseHeaders = new Headers(CORS_HEADERS);
-
-  if (headers) {
-    new Headers(headers).forEach((value, key) => {
-      responseHeaders.set(key, value);
-    });
-  }
-
-  return responseHeaders;
-}
-
-function jsonWithCors(body: unknown, init?: ResponseInit): NextResponse {
+function jsonWithCors(req: Request, body: unknown, init?: ResponseInit): NextResponse {
   return NextResponse.json(body, {
     ...init,
-    headers: withCorsHeaders(init?.headers),
+    headers: buildCorsHeaders(req, init?.headers),
   });
 }
 
@@ -125,7 +107,7 @@ export async function GET(_req: NextRequest): Promise<NextResponse> {
 export async function OPTIONS(_req: NextRequest): Promise<NextResponse> {
   return new NextResponse(null, {
     status: 204,
-    headers: withCorsHeaders(),
+    headers: buildCorsHeaders(_req),
   });
 }
 
@@ -133,6 +115,7 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
   const rateLimit = applyRateLimit(req, FAQ_RATE_LIMIT_RULE);
   if (!rateLimit.allowed) {
     return jsonWithCors(
+      req,
       { error: "rate_limited", retryAfterSeconds: rateLimit.retryAfterSeconds },
       { status: 429, headers: buildRateLimitHeaders(rateLimit) }
     );
@@ -142,14 +125,14 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
     const body: unknown = await req.json();
 
     if (!isValidFaqRequestBody(body)) {
-      return jsonWithCors({ error: "invalid_request" }, { status: 400 });
+      return jsonWithCors(req, { error: "invalid_request" }, { status: 400 });
     }
 
     const userId = body.userId.trim();
     const question = body.question.trim();
 
     if (!userId || !question || userId.length > 128 || question.length > 2000) {
-      return jsonWithCors({ error: "invalid_request" }, { status: 400 });
+      return jsonWithCors(req, { error: "invalid_request" }, { status: 400 });
     }
 
     const result = matchFaq(question);
@@ -183,10 +166,11 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
     };
 
     return jsonWithCors(
+      req,
       responseBody,
       { status: 200 }
     );
   } catch {
-    return jsonWithCors({ error: "internal_error" }, { status: 500 });
+    return jsonWithCors(req, { error: "internal_error" }, { status: 500 });
   }
 }
