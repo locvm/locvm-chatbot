@@ -74,39 +74,30 @@ export const faqs: FAQ[] = [
   },
   {
     id: "platform-fees",
-    question: "Are there platform fees?",
+    question: "How much is the service fee?",
     answer:
-      "LOCVM is free during beta, and fee logic is tied to confirmed matches rather than account creation or posting.",
+      "LOCVM is currently free to use during beta. There are no fees for creating an account, browsing opportunities, posting locum shifts, or applying.",
     category: "pricing",
     keywords: [
-      "fees",
-      "beta",
+      "service fee",
+      "platform fees",
+      "website price",
+      "website cost",
       "pricing",
       "cost",
-      "confirmed match",
-      "free posting",
-    ],
-    source: "src/app/(main)/(legal)/faq/page.jsx",
-    confidence: "high",
-    notes: "Merged duplicate fee questions.",
-  },
-  {
-    id: "is-app-free",
-    question: "Is this app free?",
-    answer:
-      "LOCVM is free during beta, and fee logic is tied to confirmed matches rather than account creation or posting.",
-    category: "pricing",
-    keywords: [
       "free",
-      "app free",
-      "pricing",
-      "fees",
-      "cost",
       "beta",
+    ],
+    synonyms: [
+      "are there platform fees",
+      "is locvm free",
+      "how much does locvm cost",
+      "how much is the service fee",
+      "fees for using the platform",
     ],
     source: "src/app/(main)/(legal)/faq/page.jsx",
     confidence: "high",
-    notes: "Added for direct free/pricing phrasing used in chatbot.",
+    notes: "Backend-owned answer for website price and service-fee questions.",
   },
   {
     id: "is-locum-only",
@@ -244,6 +235,29 @@ export const faqs: FAQ[] = [
     notes: "",
   },
   {
+    id: "locum-cost-structure",
+    question: "What is LOCVM's cost structure?",
+    answer:
+      "Each locum opportunity sets its own compensation. Pay depends on the physician's fee structure and the agreement listed on that posting, so there is not one standard rate across the platform.",
+    category: "payments",
+    keywords: [
+      "locum cost structure",
+      "payment structure",
+      "compensation structure",
+      "pay structure",
+      "how is the locum paid",
+      "standard rate",
+    ],
+    synonyms: [
+      "can you explain the payment structure",
+      "how is compensation decided",
+      "how is a locum paid",
+    ],
+    source: "src/app/(main)/(legal)/faq/page.jsx",
+    confidence: "high",
+    notes: "Backend-owned answer for compensation structure on individual postings.",
+  },
+  {
     id: "payment-timing",
     question: "When do locum physicians get paid?",
     answer:
@@ -261,6 +275,29 @@ export const faqs: FAQ[] = [
       "src/app/(main)/(legal)/faq/page.jsx; src/components/Locum_Page/PayBreakdownComponent.jsx; src/app/(main)/about/jetpay/page.jsx",
     confidence: "high",
     notes: "",
+  },
+  {
+    id: "additional-payment-details",
+    question: "Why does a posting say 'See additional details' for payment?",
+    answer:
+      "Some postings show \"See additional details\" when the compensation needs more explanation. The poster can use the additional payment details box to specify payment structure, rates, OHIP or non-OHIP billing, call coverage, stipends, or other payment terms. Users should check that section of the posting for the full payment context.",
+    category: "payments",
+    keywords: [
+      "see additional details",
+      "additional payment details",
+      "payment details",
+      "ohip",
+      "stipends",
+      "call coverage",
+    ],
+    synonyms: [
+      "why does a posting say see additional details",
+      "why does it say see additional details",
+      "where are the additional payment details",
+    ],
+    source: "src/app/(main)/(legal)/faq/page.jsx; src/components/forms/LocumForm.jsx",
+    confidence: "high",
+    notes: "Backend-owned explanation for postings that need extra compensation context.",
   },
   {
     id: "deposit-policy",

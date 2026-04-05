@@ -105,6 +105,22 @@ describe("app/api/faq/route", () => {
     });
   });
 
+  test("POST returns the backend-owned service fee FAQ", async () => {
+    const response = await POST(
+      makeFaqPostRequest({
+        userId: "user-345",
+        question: "How much is the service fee?",
+      }) as never
+    );
+    const payload = await response.json();
+
+    expect(response.status).toBe(200);
+    expect(payload.status).toBe("matched");
+    expect(payload.matchedFaqId).toBe("platform-fees");
+    expect(payload.answer).toContain("free to use during beta");
+    expect(payload.answer).toContain("posting locum shifts");
+  });
+
   test("POST still returns FAQ answer when DB logging fails", async () => {
     const consoleErrorSpy = jest
       .spyOn(console, "error")

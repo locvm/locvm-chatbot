@@ -42,7 +42,19 @@ describe("matchFaq", () => {
   test("matches app-free pricing phrasing with typo", () => {
     const result = matchFaq("is this app frree?");
     expect(result.status).toBe("matched");
-    expect(result.matchedFaqId).toBe("is-app-free");
+    expect(result.matchedFaqId).toBe("platform-fees");
+  });
+
+  test("matches locum compensation structure phrasing", () => {
+    const result = matchFaq("Can you explain the payment structure?");
+    expect(result.status).toBe("matched");
+    expect(result.matchedFaqId).toBe("locum-cost-structure");
+  });
+
+  test("matches additional payment details phrasing", () => {
+    const result = matchFaq("Why does a posting say see additional details for payment?");
+    expect(result.status).toBe("matched");
+    expect(result.matchedFaqId).toBe("additional-payment-details");
   });
 
   test("matches signup intent phrasing", () => {
