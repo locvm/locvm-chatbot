@@ -18,6 +18,17 @@ export type FAQ = {
 
 export const faqs: FAQ[] = [
   {
+    id: "greeting",
+    question: "Hi there",
+    answer:
+      "Hi! I can help with locum postings, profile setup, payments, account access, and support.",
+    category: "general",
+    keywords: ["hi", "hello", "hey", "greeting"],
+    source: "chatbot transcript review",
+    confidence: "high",
+    notes: "Added for short greeting messages that were previously unmatched.",
+  },
+  {
     id: "what-is-locvm",
     question: "What is LOCVM?",
     answer:
@@ -233,6 +244,18 @@ export const faqs: FAQ[] = [
       "src/components/forms/LocumForm.jsx; src/app/(main)/about/jetpay/page.jsx; src/app/(main)/(legal)/faq/page.jsx",
     confidence: "high",
     notes: "",
+  },
+  {
+    id: "housing-info",
+    question: "What about housing?",
+    answer:
+      "Housing details depend on the posting. If housing is offered, it should be listed in the posting details. If it is missing, contact the poster or LOCVM support.",
+    category: "posting",
+    keywords: ["housing", "accommodation", "lodging", "posting details"],
+    synonyms: ["what about housing", "is housing included"],
+    source: "chatbot transcript review",
+    confidence: "medium",
+    notes: "Added for direct housing questions that were previously unmatched.",
   },
   {
     id: "locum-cost-structure",

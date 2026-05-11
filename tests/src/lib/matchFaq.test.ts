@@ -45,14 +45,38 @@ describe("matchFaq", () => {
     expect(result.matchedFaqId).toBe("platform-fees");
   });
 
+  test("matches matching-fee phrasing from transcript", () => {
+    const result = matchFaq("what is the matching fee");
+    expect(result.status).toBe("matched");
+    expect(result.matchedFaqId).toBe("platform-fees");
+  });
+
+  test("matches pay-to-use phrasing from transcript", () => {
+    const result = matchFaq("how will i have to pay to use Locvm");
+    expect(result.status).toBe("matched");
+    expect(result.matchedFaqId).toBe("platform-fees");
+  });
+
   test("matches locum compensation structure phrasing", () => {
     const result = matchFaq("Can you explain the payment structure?");
     expect(result.status).toBe("matched");
     expect(result.matchedFaqId).toBe("locum-cost-structure");
   });
 
+  test("matches future payment-structure phrasing from transcript", () => {
+    const result = matchFaq("what will the payment structure be like when you start");
+    expect(result.status).toBe("matched");
+    expect(result.matchedFaqId).toBe("locum-cost-structure");
+  });
+
   test("matches additional payment details phrasing", () => {
     const result = matchFaq("Why does a posting say see additional details for payment?");
+    expect(result.status).toBe("matched");
+    expect(result.matchedFaqId).toBe("additional-payment-details");
+  });
+
+  test("matches direct payment-details phrasing from transcript", () => {
+    const result = matchFaq("for payment details i want to put see additional details");
     expect(result.status).toBe("matched");
     expect(result.matchedFaqId).toBe("additional-payment-details");
   });
@@ -69,6 +93,18 @@ describe("matchFaq", () => {
     expect(result.matchedFaqId).toBe("support-contact");
   });
 
+  test("matches housing phrasing from transcript", () => {
+    const result = matchFaq("What about housing?");
+    expect(result.status).toBe("matched");
+    expect(result.matchedFaqId).toBe("housing-info");
+  });
+
+  test("matches short greeting from transcript", () => {
+    const result = matchFaq("Hello.");
+    expect(result.status).toBe("matched");
+    expect(result.matchedFaqId).toBe("greeting");
+  });
+
   test("does not hijack domain support wording in non-support FAQs", () => {
     const result = matchFaq("How does LOCVM support quality candidates?");
     expect(result.status).toBe("matched");
@@ -83,10 +119,10 @@ describe("matchFaq", () => {
     expect(result.links).toEqual([]);
   });
 
-  test("returns no_match for single low-signal input", () => {
+  test("matches single low-signal greeting input", () => {
     const result = matchFaq("hello");
-    expect(result.status).toBe("no_match");
-    expect(result.matchedFaqId).toBeNull();
+    expect(result.status).toBe("matched");
+    expect(result.matchedFaqId).toBe("greeting");
   });
 
   test("returns no_match for unrelated text", () => {

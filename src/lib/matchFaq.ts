@@ -29,6 +29,10 @@ const BASIC_INTENT_RULES: Array<{ faqId: string; phrases: string[] }> = [
       "forgot password",
       "password reset",
       "forgot my password",
+      "not receiving password",
+      "not receiving the password",
+      "password email",
+      "reset email",
     ],
   },
   {
@@ -69,6 +73,12 @@ const BASIC_INTENT_RULES: Array<{ faqId: string; phrases: string[] }> = [
       "how much",
       "service fee",
       "platform fees",
+      "matching fee",
+      "match fee",
+      "pay to use locvm",
+      "fees after beta",
+      "fees when you are no longer beta",
+      "no longer beta",
       "website price",
       "website cost",
       "how much does locvm cost",
@@ -79,6 +89,9 @@ const BASIC_INTENT_RULES: Array<{ faqId: string; phrases: string[] }> = [
     phrases: [
       "see additional details",
       "additional payment details",
+      "payment details",
+      "for payment details",
+      "additional details for payment",
       "why does a posting say see additional details",
       "why does it say see additional details",
       "where are the additional payment details",
@@ -91,12 +104,27 @@ const BASIC_INTENT_RULES: Array<{ faqId: string; phrases: string[] }> = [
       "what is locvms cost structure",
       "locum cost structure",
       "payment structure",
+      "payment structure be like",
       "compensation structure",
       "pay structure",
       "how is the locum paid",
       "how is a locum paid",
       "how is compensation decided",
     ],
+  },
+  {
+    faqId: "housing-info",
+    phrases: [
+      "housing",
+      "what about housing",
+      "accommodation",
+      "accommodations",
+      "lodging",
+    ],
+  },
+  {
+    faqId: "greeting",
+    phrases: ["hi", "hello", "hey", "hi there"],
   },
   {
     faqId: "support-contact",
@@ -147,13 +175,26 @@ function findFaqById(id: string): (typeof faqs)[number] | null {
 }
 
 function containsAnyPhrase(haystack: string, phrases: string[]): boolean {
+  const haystackTokens = new Set(tokenize(haystack));
+
   return phrases.some((phrase) => {
     const normalizedPhrase = normalizeText(phrase);
-    return normalizedPhrase.length > 0 && haystack.includes(normalizedPhrase);
+    if (!normalizedPhrase) {
+      return false;
+    }
+
+    const phraseTokens = tokenize(normalizedPhrase);
+    if (phraseTokens.length === 1) {
+      return haystackTokens.has(phraseTokens[0]);
+    }
+
+    return haystack.includes(normalizedPhrase);
   });
 }
 
-function matchBasicIntent(normalizedQuestion: string): (typeof faqs)[number] | null {
+function matchBasicIntent(
+  normalizedQuestion: string,
+): (typeof faqs)[number] | null {
   for (const rule of BASIC_INTENT_RULES) {
     if (containsAnyPhrase(normalizedQuestion, rule.phrases)) {
       return findFaqById(rule.faqId);
@@ -163,7 +204,11 @@ function matchBasicIntent(normalizedQuestion: string): (typeof faqs)[number] | n
   return null;
 }
 
-function scoreFaq(normalizedQuestion: string, questionTokens: Set<string>, faq: (typeof faqs)[number]): number {
+function scoreFaq(
+  normalizedQuestion: string,
+  questionTokens: Set<string>,
+  faq: (typeof faqs)[number],
+): number {
   const normalizedFaqQuestion = normalizeText(faq.question);
 
   if (!normalizedFaqQuestion) {
