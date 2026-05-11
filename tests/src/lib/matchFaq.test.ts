@@ -27,6 +27,14 @@ describe("matchFaq", () => {
     expect(result.matchedFaqId).toBe("login-flow");
   });
 
+  test("matches password-reset email issue phrasing from transcript", () => {
+    const result = matchFaq(
+      "I am trying to reset my password and I am not receiving the email",
+    );
+    expect(result.status).toBe("matched");
+    expect(result.matchedFaqId).toBe("reset-password-flow");
+  });
+
   test("matches exact login phrasing from widget transcript", () => {
     const result = matchFaq("how do i log in?");
     expect(result.status).toBe("matched");
@@ -123,6 +131,12 @@ describe("matchFaq", () => {
     const result = matchFaq("hello");
     expect(result.status).toBe("matched");
     expect(result.matchedFaqId).toBe("greeting");
+  });
+
+  test("does not match greeting tokens inside unrelated words", () => {
+    const result = matchFaq("shipping update");
+    expect(result.status).toBe("no_match");
+    expect(result.matchedFaqId).toBeNull();
   });
 
   test("returns no_match for unrelated text", () => {
