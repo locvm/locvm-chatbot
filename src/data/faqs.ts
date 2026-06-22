@@ -41,7 +41,12 @@ export const faqs: FAQ[] = [
       "coverage",
       "marketplace",
       "staff physician",
+      "what is this site",
+      "what is this website",
+      "about this site",
+      "site about",
     ],
+    synonyms: ["tell me about locvm"],
     source: "src/app/(main)/(legal)/faq/page.jsx",
     confidence: "high",
     notes: "Canonicalized from long FAQ copy.",
@@ -278,7 +283,8 @@ export const faqs: FAQ[] = [
     ],
     source: "src/app/(main)/(legal)/faq/page.jsx",
     confidence: "high",
-    notes: "Backend-owned answer for compensation structure on individual postings.",
+    notes:
+      "Backend-owned answer for compensation structure on individual postings.",
   },
   {
     id: "payment-timing",
@@ -303,7 +309,7 @@ export const faqs: FAQ[] = [
     id: "additional-payment-details",
     question: "Why does a posting say 'See additional details' for payment?",
     answer:
-      "Some postings show \"See additional details\" when the compensation needs more explanation. The poster can use the additional payment details box to specify payment structure, rates, OHIP or non-OHIP billing, call coverage, stipends, or other payment terms. Users should check that section of the posting for the full payment context.",
+      'Some postings show "See additional details" when the compensation needs more explanation. The poster can use the additional payment details box to specify payment structure, rates, OHIP or non-OHIP billing, call coverage, stipends, or other payment terms. Users should check that section of the posting for the full payment context.',
     category: "payments",
     keywords: [
       "see additional details",
@@ -318,9 +324,11 @@ export const faqs: FAQ[] = [
       "why does it say see additional details",
       "where are the additional payment details",
     ],
-    source: "src/app/(main)/(legal)/faq/page.jsx; src/components/forms/LocumForm.jsx",
+    source:
+      "src/app/(main)/(legal)/faq/page.jsx; src/components/forms/LocumForm.jsx",
     confidence: "high",
-    notes: "Backend-owned explanation for postings that need extra compensation context.",
+    notes:
+      "Backend-owned explanation for postings that need extra compensation context.",
   },
   {
     id: "deposit-policy",
@@ -582,10 +590,36 @@ export const faqs: FAQ[] = [
     notes: "",
   },
   {
+    id: "what-is-cpso-receipt",
+    question: "What is a CPSO receipt?",
+    answer:
+      "The CPSO receipt is a PDF from the College of Physicians and Surgeons of Ontario (CPSO) that confirms your current medical registration. LOCVM requires it as proof of your medical license during verification.",
+    category: "verification",
+    keywords: [
+      "what is cpso",
+      "cpso receipt",
+      "cpso document",
+      "medical registration",
+      "college of physicians",
+      "license proof",
+    ],
+    synonyms: [
+      "what is a cpso receipt",
+      "what is the cpso receipt",
+      "what does cpso receipt mean",
+    ],
+    source: "src/app/(main)/info/cpso-receipt/page.jsx",
+    confidence: "high",
+    notes: "",
+  },
+  {
     id: "get-cpso-receipt",
     question: "How do I get my CPSO receipt?",
     answer:
-      "In CPSO portal: Profile -> Financial Transactions -> Paid Invoices -> download PDF.",
+      "In the CPSO member portal: Profile → Financial Transactions → Paid Invoices → download the PDF.",
+    links: [
+      { label: "Step-by-step guide", href: "/info/cpso-receipt" },
+    ],
     category: "verification",
     keywords: [
       "cpso receipt",
@@ -593,7 +627,7 @@ export const faqs: FAQ[] = [
       "financial transactions",
       "paid invoices",
       "download pdf",
-      "license proof",
+      "get cpso",
     ],
     source: "src/app/(main)/info/cpso-receipt/page.jsx",
     confidence: "high",
@@ -956,5 +990,113 @@ export const faqs: FAQ[] = [
     source: "multiple pages (FAQ, auth, error, legal)",
     confidence: "high",
     notes: "Consolidated repeated support snippets.",
+  },
+  {
+    id: "specialist-register",
+    question:
+      "I'm a specialist looking for a locum to cover my practice — should I register?",
+    answer:
+      "Yes. If you are a specialist (or any staff physician) who needs someone to cover your practice, you should register as a Staff Physician. You can then post the locum opportunity, set the dates, specialty, and compensation, and receive applications from qualified locum physicians.",
+    links: [{ label: "Create an account", href: "/signup" }],
+    category: "general",
+    keywords: [
+      "specialist",
+      "staff physician",
+      "take over my practice",
+      "cover my practice",
+      "locum coverage",
+      "register",
+      "should i sign up",
+      "2 weeks",
+      "4 weeks",
+      "short term coverage",
+    ],
+    synonyms: [
+      "i am a specialist looking for a locum",
+      "should i register as a specialist",
+      "specialist needing locum coverage",
+      "i need someone to cover my practice",
+      "looking for a locum to take over my practice",
+    ],
+    source: "product decision",
+    confidence: "high",
+    notes:
+      "Addresses specialists/staff physicians unsure which role to register as.",
+  },
+  {
+    id: "team-behind-locvm",
+    question: "Who is the team behind LOCVM?",
+    answer:
+      "LOCVM was founded by Angélique Bernabé (Co-Founder & Business Dev Lead, PhD economist) and Ève Aimée Seni (Co-Founder & Tech Lead). The medical side is led by Dr. Joyce Cheung (Chief Medical Officer, family and palliative care physician). The team also includes a medical advisory council with physicians from across Ontario and a UX/UI lead.",
+    links: [{ label: "Meet the team", href: "/team" }],
+    category: "general",
+    keywords: [
+      "team",
+      "founders",
+      "who built locvm",
+      "who made this",
+      "behind locvm",
+      "angelique",
+      "eve seni",
+      "dr joyce cheung",
+      "medical officer",
+      "advisory council",
+    ],
+    synonyms: [
+      "who is behind this",
+      "who are the founders",
+      "who created locvm",
+      "who made locvm",
+      "who runs locvm",
+      "who is the team",
+      "tell me about the team",
+    ],
+    source: "src/constants/team.js",
+    confidence: "high",
+    notes: "Links to /team page for full bios.",
+  },
+  {
+    id: "earnings-estimate",
+    question: "How do I calculate how much I can make from a locum?",
+    answer:
+      "There is no platform-wide earnings calculator because compensation is set individually on each posting. When you view a posting, you will see the compensation type (fee-for-service, daily rate, etc.) and any additional payment details. Once you choose dates and request a booking, the reservation summary shows a full payment breakdown before you confirm.",
+    category: "payments",
+    keywords: [
+      "earnings",
+      "how much can i make",
+      "income",
+      "calculate earnings",
+      "earnings calculator",
+      "locum income",
+      "how much will i earn",
+      "how much do locums make",
+      "compensation estimate",
+    ],
+    synonyms: ["locum earnings calculator"],
+    source: "src/components/Locum_Page/PayBreakdownComponent.jsx",
+    confidence: "high",
+    notes:
+      "No calculator exists; directs user to posting details and reservation summary.",
+  },
+  {
+    id: "upload-cv-coming-soon",
+    question: "How do I upload my CV?",
+    answer:
+      "CV upload is not yet available on LOCVM. It is a planned feature coming in a future update. For now, your profile and verified medical license are what locum posters can see.",
+    category: "profile",
+    keywords: [
+      "cv",
+      "resume",
+      "upload cv",
+      "upload resume",
+      "curriculum vitae",
+      "coming soon",
+      "future feature",
+    ],
+    synonyms: ["upload curriculum vitae"],
+    source: "product decision (coming soon)",
+    confidence: "high",
+    notes:
+      "CV upload is planned but not yet built. Answer must not imply it is available.",
   },
 ];
