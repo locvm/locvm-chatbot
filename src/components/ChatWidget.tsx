@@ -31,6 +31,7 @@ type Message = {
   id: string;
   role: "assistant" | "user";
   text: string;
+  links?: { label: string; href: string }[];
   feedback?: AssistantFeedback;
   noMatchSuggestions?: string[];
   supportEmail?: string;
@@ -39,6 +40,7 @@ type Message = {
 type FaqApiResponse = {
   interactionId?: string;
   answer?: string;
+  links?: { label: string; href: string }[];
   matchedFaqId?: string | null;
   matchScore?: number | null;
   status?: "matched" | "no_match";
@@ -98,6 +100,23 @@ export function isFrustrationIntent(question: string): boolean {
   ];
 
   return frustrationPhrases.some((phrase) => normalized.includes(phrase));
+}
+
+export function normalizeFaqLinks(
+  links: FaqApiResponse["links"]
+): { label: string; href: string }[] {
+  if (!Array.isArray(links)) {
+    return [];
+  }
+
+  return links.filter(
+    (link): link is { label: string; href: string } =>
+      !!link &&
+      typeof link.label === "string" &&
+      link.label.trim().length > 0 &&
+      typeof link.href === "string" &&
+      link.href.trim().length > 0
+  );
 }
 
 export function getRateLimitReply(retryAfterSeconds?: number): string {
@@ -255,6 +274,7 @@ export default function ChatWidget({
             id: crypto.randomUUID(),
             role: "assistant",
             text: payload.answer,
+            links: normalizeFaqLinks(payload.links),
             feedback: {
               interactionId,
               fallbackLog: feedbackContext,
@@ -399,6 +419,21 @@ export default function ChatWidget({
               }`}
             >
               <p>{message.text}</p>
+              {message.links?.length ? (
+                <ul className={styles.answerLinkList}>
+                  {message.links.map((link) => (
+                    <li key={`${link.href}-${link.label}`}>
+                      <a
+                        href={link.href}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                      >
+                        {link.label}
+                      </a>
+                    </li>
+                  ))}
+                </ul>
+              ) : null}
               {message.noMatchSuggestions?.length ? (
                 <>
                   <ul className={styles.suggestionList}>

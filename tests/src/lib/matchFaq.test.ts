@@ -95,6 +95,42 @@ describe("matchFaq", () => {
     expect(result.matchedFaqId).toBe("create-account-flow");
   });
 
+  test("matches profile setup help and returns clarifying follow-up", () => {
+    const result = matchFaq("can you help me set up a profile");
+    expect(result.status).toBe("matched");
+    expect(result.matchedFaqId).toBe("profile-setup-help");
+    expect(result.answer.toLowerCase()).toContain("which part");
+    expect(
+      result.links.some(
+        (link) => link.href === "https://www.youtube.com/watch?v=v55cniadcDs"
+      )
+    ).toBe(true);
+  });
+
+  test("matches profile details follow-up phrasing", () => {
+    const result = matchFaq("filling in my details");
+    expect(result.status).toBe("matched");
+    expect(result.matchedFaqId).toBe("profile-details-help");
+  });
+
+  test("matches CPSO upload follow-up phrasing", () => {
+    const result = matchFaq("uploading my cpso");
+    expect(result.status).toBe("matched");
+    expect(result.matchedFaqId).toBe("upload-medical-license-receipt");
+  });
+
+  test("matches CV upload phrasing with youtube link", () => {
+    const result = matchFaq("where to add my CV");
+    expect(result.status).toBe("matched");
+    expect(result.matchedFaqId).toBe("upload-cv");
+    expect(result.answer.toLowerCase()).toContain("profile");
+    expect(
+      result.links.some(
+        (link) => link.href === "https://www.youtube.com/watch?v=7lxKrfb72R4"
+      )
+    ).toBe(true);
+  });
+
   test("matches support intent phrasing", () => {
     const result = matchFaq("i need help from customer service");
     expect(result.status).toBe("matched");

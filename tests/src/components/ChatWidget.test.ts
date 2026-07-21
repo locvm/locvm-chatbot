@@ -7,6 +7,7 @@ import ChatWidget, {
   buildStarterMessage,
   getRateLimitReply,
   isFrustrationIntent,
+  normalizeFaqLinks,
 } from "@/src/components/ChatWidget";
 
 describe("ChatWidget", () => {
@@ -34,6 +35,21 @@ describe("ChatWidget", () => {
   test("returns a specific rate limit message when retryAfterSeconds is present", () => {
     expect(getRateLimitReply(12)).toContain("12 seconds");
     expect(getRateLimitReply()).toContain("wait a moment");
+  });
+
+  test("normalizeFaqLinks keeps only valid label/href pairs", () => {
+    expect(
+      normalizeFaqLinks([
+        { label: "Watch CV", href: "https://www.youtube.com/watch?v=7lxKrfb72R4" },
+        { label: "  ", href: "/profile" },
+        { label: "Broken", href: "" },
+      ])
+    ).toEqual([
+      {
+        label: "Watch CV",
+        href: "https://www.youtube.com/watch?v=7lxKrfb72R4",
+      },
+    ]);
   });
 
   test("renders the standalone widget shell with custom labels", () => {
