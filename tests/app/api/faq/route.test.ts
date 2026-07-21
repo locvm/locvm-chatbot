@@ -121,6 +121,55 @@ describe("app/api/faq/route", () => {
     expect(payload.answer).toContain("posting locum shifts");
   });
 
+  test("POST returns profile setup suggestions and youtube link", async () => {
+    const response = await POST(
+      makeFaqPostRequest({
+        userId: "user-profile",
+        question: "can you help me set up a profile",
+      }) as never
+    );
+    const payload = await response.json();
+
+    expect(response.status).toBe(200);
+    expect(payload.status).toBe("matched");
+    expect(payload.matchedFaqId).toBe("profile-setup-help");
+    expect(payload.suggestions).toEqual([
+      "Creating an account",
+      "Logging in",
+      "Uploading my CPSO",
+      "Filling in my profile details",
+      "Uploading my CV",
+    ]);
+    expect(payload.links).toEqual([
+      {
+        label: "Watch: Creating your profile and adding your CPSO",
+        href: "https://www.youtube.com/watch?v=v55cniadcDs",
+      },
+    ]);
+  });
+
+  test("POST returns live CV upload answer with youtube link", async () => {
+    const response = await POST(
+      makeFaqPostRequest({
+        userId: "user-cv",
+        question: "where to add my CV",
+      }) as never
+    );
+    const payload = await response.json();
+
+    expect(response.status).toBe(200);
+    expect(payload.status).toBe("matched");
+    expect(payload.matchedFaqId).toBe("upload-cv");
+    expect(payload.answer.toLowerCase()).not.toContain("coming soon");
+    expect(payload.suggestions).toEqual([]);
+    expect(payload.links).toEqual([
+      {
+        label: "Watch: Uploading your CV",
+        href: "https://www.youtube.com/watch?v=7lxKrfb72R4",
+      },
+    ]);
+  });
+
   test("POST still returns FAQ answer when DB logging fails", async () => {
     const consoleErrorSpy = jest
       .spyOn(console, "error")

@@ -8,6 +8,7 @@ import ChatWidget, {
   getRateLimitReply,
   isFrustrationIntent,
   normalizeFaqLinks,
+  normalizeFaqSuggestions,
 } from "@/src/components/ChatWidget";
 
 describe("ChatWidget", () => {
@@ -50,6 +51,20 @@ describe("ChatWidget", () => {
         href: "https://www.youtube.com/watch?v=7lxKrfb72R4",
       },
     ]);
+  });
+
+  test("normalizeFaqSuggestions keeps only non-empty strings", () => {
+    expect(
+      normalizeFaqSuggestions([
+        "Creating an account",
+        "  ",
+        "Uploading my CV",
+        null as unknown as string,
+        12 as unknown as string,
+      ])
+    ).toEqual(["Creating an account", "Uploading my CV"]);
+    expect(normalizeFaqSuggestions(undefined)).toEqual([]);
+    expect(normalizeFaqSuggestions("bad" as never)).toEqual([]);
   });
 
   test("renders the standalone widget shell with custom labels", () => {
