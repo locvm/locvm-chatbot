@@ -8,6 +8,7 @@ export type FAQ = {
   question: string;
   answer: string;
   links?: FaqLink[];
+  suggestions?: string[];
   keywords?: string[];
   synonyms?: string[];
   category?: string;
@@ -688,8 +689,14 @@ export const faqs: FAQ[] = [
   {
     id: "profile-setup-help",
     question: "Can you help me set up a profile?",
-    answer:
-      "Yes. Tell me which part you need help with and ask again using one of these: creating an account, logging in, uploading CPSO or license, filling in profile details, or uploading CV.",
+    answer: "Yes. Tap one option below and I'll walk you through that step.",
+    suggestions: [
+      "Creating an account",
+      "Logging in",
+      "Uploading my CPSO",
+      "Filling in my profile details",
+      "Uploading my CV",
+    ],
     links: [
       {
         label: "Watch: Creating your profile and adding your CPSO",

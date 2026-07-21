@@ -99,7 +99,14 @@ describe("matchFaq", () => {
     const result = matchFaq("can you help me set up a profile");
     expect(result.status).toBe("matched");
     expect(result.matchedFaqId).toBe("profile-setup-help");
-    expect(result.answer.toLowerCase()).toContain("which part");
+    expect(result.answer.toLowerCase()).toContain("tap one option");
+    expect(result.suggestions).toEqual([
+      "Creating an account",
+      "Logging in",
+      "Uploading my CPSO",
+      "Filling in my profile details",
+      "Uploading my CV",
+    ]);
     expect(
       result.links.some(
         (link) => link.href === "https://www.youtube.com/watch?v=v55cniadcDs"
@@ -111,6 +118,18 @@ describe("matchFaq", () => {
     const result = matchFaq("filling in my details");
     expect(result.status).toBe("matched");
     expect(result.matchedFaqId).toBe("profile-details-help");
+  });
+
+  test("matches profile setup suggestion chip labels", () => {
+    expect(matchFaq("Creating an account").matchedFaqId).toBe("create-account-flow");
+    expect(matchFaq("Logging in").matchedFaqId).toBe("login-flow");
+    expect(matchFaq("Uploading my CPSO").matchedFaqId).toBe(
+      "upload-medical-license-receipt",
+    );
+    expect(matchFaq("Filling in my profile details").matchedFaqId).toBe(
+      "profile-details-help",
+    );
+    expect(matchFaq("Uploading my CV").matchedFaqId).toBe("upload-cv");
   });
 
   test("matches CPSO upload follow-up phrasing", () => {

@@ -15,6 +15,7 @@ type FaqResponseBody = {
   interactionId: string | null;
   answer: string;
   links: { label: string; href: string }[];
+  suggestions: string[];
   matchedFaqId: string | null;
   matchScore: number | null;
   status: "matched" | "no_match";
@@ -158,6 +159,7 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
       interactionId,
       answer: result.answer,
       links: result.links,
+      suggestions: result.suggestions,
       matchedFaqId: result.matchedFaqId,
       matchScore: result.matchScore,
       status: result.status,

@@ -85,6 +85,7 @@ const BASIC_INTENT_RULES: Array<{ faqId: string; phrases: string[] }> = [
     phrases: [
       "filling in my details",
       "filling in profile details",
+      "filling in my profile details",
       "fill in my details",
       "fill in profile details",
       "profile details",
@@ -287,6 +288,7 @@ export type MatchFaqResult = {
   matchedFaqId: string | null;
   answer: string;
   links: FaqLink[];
+  suggestions: string[];
   matchScore: number | null;
   status: "matched" | "no_match";
 };
@@ -412,6 +414,7 @@ export function matchFaq(question: string): MatchFaqResult {
       matchedFaqId: null,
       answer: NO_MATCH_ANSWER,
       links: [],
+      suggestions: [],
       matchScore: null,
       status: "no_match",
     };
@@ -423,6 +426,7 @@ export function matchFaq(question: string): MatchFaqResult {
       matchedFaqId: basicIntentFaq.id,
       answer: basicIntentFaq.answer,
       links: basicIntentFaq.links ?? [],
+      suggestions: basicIntentFaq.suggestions ?? [],
       matchScore: MATCH_THRESHOLD,
       status: "matched",
     };
@@ -446,6 +450,7 @@ export function matchFaq(question: string): MatchFaqResult {
       matchedFaqId: null,
       answer: NO_MATCH_ANSWER,
       links: [],
+      suggestions: [],
       matchScore: null,
       status: "no_match",
     };
@@ -455,6 +460,7 @@ export function matchFaq(question: string): MatchFaqResult {
     matchedFaqId: bestFaq.id,
     answer: bestFaq.answer,
     links: bestFaq.links ?? [],
+    suggestions: bestFaq.suggestions ?? [],
     matchScore: bestScore,
     status: "matched",
   };
