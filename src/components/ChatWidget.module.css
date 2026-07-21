@@ -9,6 +9,7 @@
   --slate-200: #e2e8f0;
 
   color: var(--slate-900);
+  font-family: Quicksand, "Avenir Next", "Segoe UI", sans-serif;
 }
 
 .launcher {
@@ -162,6 +163,51 @@
 
 .suggestionList li {
   line-height: 1.4;
+}
+
+.answerLinkList {
+  margin: 0.55rem 0 0;
+  padding-left: 1.1rem;
+  display: grid;
+  gap: 0.35rem;
+}
+
+.answerLinkList a {
+  color: var(--teal-strong);
+  font-weight: 700;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.suggestionActions {
+  margin-top: 0.65rem;
+  display: grid;
+  gap: 0.4rem;
+}
+
+.suggestionChip {
+  border: 1px solid var(--slate-200);
+  background: var(--white);
+  color: var(--slate-700);
+  border-radius: 10px;
+  padding: 0.45rem 0.7rem;
+  font-family: inherit;
+  font-size: 0.82rem;
+  font-weight: 400;
+  text-align: left;
+  cursor: pointer;
+}
+
+.suggestionChip:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .suggestionChip:hover:not(:disabled) {
+    border-color: var(--teal);
+    color: var(--teal-strong);
+  }
 }
 
 .suggestionSupport {

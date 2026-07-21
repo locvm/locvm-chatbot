@@ -8,6 +8,7 @@ export type FAQ = {
   question: string;
   answer: string;
   links?: FaqLink[];
+  suggestions?: string[];
   keywords?: string[];
   synonyms?: string[];
   category?: string;
@@ -538,7 +539,13 @@ export const faqs: FAQ[] = [
     id: "upload-medical-license-receipt",
     question: "How do I upload my medical license receipt?",
     answer:
-      "Use the PDF uploader in onboarding/profile. It accepts PDF only, up to 5MB, and shows upload/status state.",
+      "Upload your medical license receipt (for example CPSO) as a PDF (max 5MB) during onboarding on Professional Details, or later on your Profile page. LOCVM reviews it—usually within about 24 hours—and you need approval before you can apply to or post locums.",
+    links: [
+      {
+        label: "Watch: Creating your profile and adding your CPSO",
+        href: "https://www.youtube.com/watch?v=v55cniadcDs",
+      },
+    ],
     category: "verification",
     keywords: [
       "upload receipt",
@@ -547,8 +554,10 @@ export const faqs: FAQ[] = [
       "medical license",
       "cpso file",
       "verification document",
+      "upload cpso",
+      "uploading cpso",
     ],
-    source: "src/components/PDFUpload/PDFUpload.jsx",
+    source: "src/components/PDFUpload/PDFUpload.jsx; src/data/tutorialVideos.js",
     confidence: "high",
     notes: "",
   },
@@ -656,7 +665,13 @@ export const faqs: FAQ[] = [
     id: "profile-completion-checklist",
     question: "What do I need to complete my profile?",
     answer:
-      "Core blockers shown in UI are onboarding completion plus role-specific verification (license receipt for physicians, LinkedIn verification for recruiters).",
+      "Finish onboarding, then complete role-specific verification: physicians need a confirmed medical license receipt. Until that is done, applying, posting, and messaging can be blocked.",
+    links: [
+      {
+        label: "Watch: Creating your profile and adding your CPSO",
+        href: "https://www.youtube.com/watch?v=v55cniadcDs",
+      },
+    ],
     category: "profile",
     keywords: [
       "checklist",
@@ -665,8 +680,73 @@ export const faqs: FAQ[] = [
       "license receipt",
       "linkedin verification",
       "requirements",
+      "complete profile",
     ],
-    source: "src/components/profile/ProfileIncompleteBanner.jsx",
+    source: "src/components/profile/ProfileIncompleteBanner.jsx; src/data/tutorialVideos.js",
+    confidence: "high",
+    notes: "",
+  },
+  {
+    id: "profile-setup-help",
+    question: "Can you help me set up a profile?",
+    answer: "Yes. Tap one option below and I'll walk you through that step.",
+    suggestions: [
+      "Creating an account",
+      "Logging in",
+      "Uploading my CPSO",
+      "Filling in my profile details",
+      "Uploading my CV",
+    ],
+    links: [
+      {
+        label: "Watch: Creating your profile and adding your CPSO",
+        href: "https://www.youtube.com/watch?v=v55cniadcDs",
+      },
+    ],
+    category: "profile",
+    keywords: [
+      "set up a profile",
+      "setup profile",
+      "help set up",
+      "profile setup",
+      "set up my profile",
+      "help with profile",
+    ],
+    synonyms: [
+      "can you help me set up a profile",
+      "help me set up my profile",
+      "help me with my profile",
+    ],
+    source: "src/constants/onboarding.js; src/data/tutorialVideos.js",
+    confidence: "high",
+    notes: "Clarifying entry point; follow-up topics map to other FAQs.",
+  },
+  {
+    id: "profile-details-help",
+    question: "How do I fill in my profile details?",
+    answer:
+      "After signing up, complete onboarding (role, profile setup...) You also can update details anytime on your Profile page. For physicians, specialty and license fields matter for verification; a resume/CV is optional.",
+    links: [
+      {
+        label: "Watch: Creating your profile and adding your CPSO",
+        href: "https://www.youtube.com/watch?v=v55cniadcDs",
+      },
+    ],
+    category: "profile",
+    keywords: [
+      "profile details",
+      "fill in details",
+      "filling in profile",
+      "professional details",
+      "edit profile",
+      "update profile",
+    ],
+    synonyms: [
+      "filling in my details",
+      "filling in profile details",
+      "complete my details",
+    ],
+    source: "src/constants/onboarding.js; src/app/(main)/profile/page.jsx",
     confidence: "high",
     notes: "",
   },
@@ -821,7 +901,8 @@ export const faqs: FAQ[] = [
     id: "create-account-flow",
     question: "How do I create an account?",
     answer:
-      "Use the sign-up flow, verify your email, then complete onboarding before applying to postings or creating them.",
+      "Go to Sign up, create your account, verify your email, then complete onboarding before applying to or posting locums.",
+    links: [{ label: "Create an account", href: "/sign-up" }],
     category: "account",
     keywords: [
       "sign up",
@@ -830,9 +911,10 @@ export const faqs: FAQ[] = [
       "create account",
       "make account",
       "new account",
+      "creating an account",
     ],
     source:
-      "src/app/(standalone)/onboarding/email-verification/page.jsx; src/app/(main)/(auth)/auth-verification/page.jsx",
+      "src/app/(main)/(auth)/sign-up/page.jsx; src/app/(standalone)/onboarding/email-verification/page.jsx",
     confidence: "high",
     notes: "Added for common account-creation questions.",
   },
@@ -840,9 +922,9 @@ export const faqs: FAQ[] = [
     id: "login-flow",
     question: "How do I log in?",
     answer:
-      "Go to the login page, enter your email and password, then sign in. If you cannot access your account, use reset-password and follow the email link.",
+      "Go to Log in, enter your email and password, then sign in. If you cannot access your account, use Reset password and follow the email link.",
     links: [
-      { label: "Go to login", href: "/login" },
+      { label: "Go to log in", href: "/log-in" },
       { label: "Reset password", href: "/reset-password" },
     ],
     category: "account",
@@ -853,9 +935,10 @@ export const faqs: FAQ[] = [
       "account access",
       "can t log in",
       "cannot log in",
+      "logging in",
     ],
     source:
-      "src/app/(main)/(auth)/login/page.jsx; src/app/(main)/(auth)/reset-password/page.jsx",
+      "src/app/(main)/(auth)/log-in/page.jsx; src/app/(main)/(auth)/reset-password/page.jsx",
     confidence: "high",
     notes: "Added for direct login intent.",
   },
@@ -866,7 +949,7 @@ export const faqs: FAQ[] = [
       "Open reset-password, submit your email, use the link sent to your inbox, then set a new password.",
     links: [
       { label: "Reset password", href: "/reset-password" },
-      { label: "Go to login", href: "/login" },
+      { label: "Go to log in", href: "/log-in" },
     ],
     category: "account",
     keywords: [
@@ -1079,10 +1162,16 @@ export const faqs: FAQ[] = [
       "No calculator exists; directs user to posting details and reservation summary.",
   },
   {
-    id: "upload-cv-coming-soon",
+    id: "upload-cv",
     question: "How do I upload my CV?",
     answer:
-      "CV upload is not yet available on LOCVM. It is a planned feature coming in a future update. For now, your profile and verified medical license are what locum posters can see.",
+      "Upload your resume on your Profile page under Professional Information. You can also add it during onboarding on Professional Details. When you apply, you can choose to share your resume with the clinic.",
+    links: [
+      {
+        label: "Watch: Uploading your CV",
+        href: "https://www.youtube.com/watch?v=7lxKrfb72R4",
+      },
+    ],
     category: "profile",
     keywords: [
       "cv",
@@ -1090,13 +1179,17 @@ export const faqs: FAQ[] = [
       "upload cv",
       "upload resume",
       "curriculum vitae",
-      "coming soon",
-      "future feature",
+      "where to add my cv",
+      "add my cv",
     ],
-    synonyms: ["upload curriculum vitae"],
-    source: "product decision (coming soon)",
+    synonyms: [
+      "upload curriculum vitae",
+      "where to add my cv",
+      "where do i add my cv",
+    ],
+    source:
+      "src/components/profile/Sections/CVBanner.jsx; src/components/CV/CVUploadBox.jsx; src/data/tutorialVideos.js",
     confidence: "high",
-    notes:
-      "CV upload is planned but not yet built. Answer must not imply it is available.",
+    notes: "",
   },
 ];

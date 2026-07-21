@@ -31,6 +31,8 @@ type Message = {
   id: string;
   role: "assistant" | "user";
   text: string;
+  links?: { label: string; href: string }[];
+  suggestions?: string[];
   feedback?: AssistantFeedback;
   noMatchSuggestions?: string[];
   supportEmail?: string;
@@ -39,6 +41,8 @@ type Message = {
 type FaqApiResponse = {
   interactionId?: string;
   answer?: string;
+  links?: { label: string; href: string }[];
+  suggestions?: string[];
   matchedFaqId?: string | null;
   matchScore?: number | null;
   status?: "matched" | "no_match";
@@ -100,6 +104,34 @@ export function isFrustrationIntent(question: string): boolean {
   return frustrationPhrases.some((phrase) => normalized.includes(phrase));
 }
 
+export function normalizeFaqLinks(
+  links: FaqApiResponse["links"]
+): { label: string; href: string }[] {
+  if (!Array.isArray(links)) {
+    return [];
+  }
+
+  return links.filter(
+    (link): link is { label: string; href: string } =>
+      !!link &&
+      typeof link.label === "string" &&
+      link.label.trim().length > 0 &&
+      typeof link.href === "string" &&
+      link.href.trim().length > 0
+  );
+}
+
+export function normalizeFaqSuggestions(suggestions: FaqApiResponse["suggestions"]): string[] {
+  if (!Array.isArray(suggestions)) {
+    return [];
+  }
+
+  return suggestions.filter(
+    (suggestion): suggestion is string =>
+      typeof suggestion === "string" && suggestion.trim().length > 0
+  );
+}
+
 export function getRateLimitReply(retryAfterSeconds?: number): string {
   if (typeof retryAfterSeconds === "number" && retryAfterSeconds > 0) {
     return `You are sending messages too quickly. Please wait about ${retryAfterSeconds} seconds and try again.`;
@@ -158,11 +190,9 @@ export default function ChatWidget({
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages, isTyping]);
 
-  const onSubmit = async (event: FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
-
-    const question = draft.trim();
-    if (!question) {
+  const askQuestion = async (rawQuestion: string) => {
+    const question = rawQuestion.trim();
+    if (!question || isTyping) {
       return;
     }
 
@@ -255,6 +285,8 @@ export default function ChatWidget({
             id: crypto.randomUUID(),
             role: "assistant",
             text: payload.answer,
+            links: normalizeFaqLinks(payload.links),
+            suggestions: normalizeFaqSuggestions(payload.suggestions),
             feedback: {
               interactionId,
               fallbackLog: feedbackContext,
@@ -276,6 +308,11 @@ export default function ChatWidget({
 
     setMessages((current) => [...current, assistantMessage]);
     setPendingReplies((current) => Math.max(0, current - 1));
+  };
+
+  const onSubmit = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    await askQuestion(draft);
   };
 
   const submitFeedback = async (messageId: string, helpful: boolean) => {
@@ -399,6 +436,36 @@ export default function ChatWidget({
               }`}
             >
               <p>{message.text}</p>
+              {message.links?.length ? (
+                <ul className={styles.answerLinkList}>
+                  {message.links.map((link) => (
+                    <li key={`${link.href}-${link.label}`}>
+                      <a
+                        href={link.href}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                      >
+                        {link.label}
+                      </a>
+                    </li>
+                  ))}
+                </ul>
+              ) : null}
+              {message.suggestions?.length ? (
+                <div className={styles.suggestionActions}>
+                  {message.suggestions.map((suggestion) => (
+                    <button
+                      key={suggestion}
+                      type="button"
+                      className={styles.suggestionChip}
+                      onClick={() => void askQuestion(suggestion)}
+                      disabled={isTyping}
+                    >
+                      {suggestion}
+                    </button>
+                  ))}
+                </div>
+              ) : null}
               {message.noMatchSuggestions?.length ? (
                 <>
                   <ul className={styles.suggestionList}>

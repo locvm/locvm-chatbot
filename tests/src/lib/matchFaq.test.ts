@@ -125,6 +125,7 @@ describe("matchFaq", () => {
     expect(result.matchedFaqId).toBeNull();
     expect(result.matchScore).toBeNull();
     expect(result.links).toEqual([]);
+    expect(result.suggestions).toEqual([]);
   });
 
   test("matches single low-signal greeting input", () => {
@@ -144,5 +145,92 @@ describe("matchFaq", () => {
     expect(result.status).toBe("no_match");
     expect(result.matchedFaqId).toBeNull();
     expect(result.answer.toLowerCase()).toContain("could not find");
+    expect(result.suggestions).toEqual([]);
+  });
+});
+
+describe("matchFaq profile and CV follow-ups", () => {
+  test.each([
+    "can you help me set up a profile",
+    "help me set up my profile",
+    "set up my profile",
+    "profile setup",
+  ])("matches profile setup phrasing: %s", (question) => {
+    const result = matchFaq(question);
+    expect(result.matchedFaqId).toBe("profile-setup-help");
+    expect(result.suggestions.length).toBe(5);
+  });
+
+  test("profile setup returns youtube walkthrough link", () => {
+    const result = matchFaq("can you help me set up a profile");
+    expect(result.links).toEqual([
+      {
+        label: "Watch: Creating your profile and adding your CPSO",
+        href: "https://www.youtube.com/watch?v=v55cniadcDs",
+      },
+    ]);
+  });
+
+  test.each([
+    ["Creating an account", "create-account-flow"],
+    ["Logging in", "login-flow"],
+    ["Uploading my CPSO", "upload-medical-license-receipt"],
+    ["Filling in my profile details", "profile-details-help"],
+    ["Uploading my CV", "upload-cv"],
+  ])("profile suggestion %s routes to %s", (question, faqId) => {
+    const result = matchFaq(question);
+    expect(result.status).toBe("matched");
+    expect(result.matchedFaqId).toBe(faqId);
+    expect(result.suggestions).toEqual([]);
+  });
+
+  test("create-account follow-up uses sign-up path", () => {
+    const result = matchFaq("Creating an account");
+    expect(result.links.some((link) => link.href === "/sign-up")).toBe(true);
+  });
+
+  test("login follow-up uses log-in path", () => {
+    const result = matchFaq("Logging in");
+    expect(result.links.some((link) => link.href === "/log-in")).toBe(true);
+  });
+
+  test("CPSO upload returns profile youtube link and not coming-soon copy", () => {
+    const result = matchFaq("Uploading my CPSO");
+    expect(result.matchedFaqId).toBe("upload-medical-license-receipt");
+    expect(result.answer.toLowerCase()).toContain("pdf");
+    expect(result.answer.toLowerCase()).not.toContain("coming soon");
+    expect(
+      result.links.some(
+        (link) => link.href === "https://www.youtube.com/watch?v=v55cniadcDs",
+      ),
+    ).toBe(true);
+  });
+
+  test("profile details returns walkthrough youtube link", () => {
+    const result = matchFaq("Filling in my profile details");
+    expect(result.matchedFaqId).toBe("profile-details-help");
+    expect(
+      result.links.some(
+        (link) => link.href === "https://www.youtube.com/watch?v=v55cniadcDs",
+      ),
+    ).toBe(true);
+  });
+
+  test.each([
+    "where to add my CV",
+    "where do i add my cv",
+    "upload my resume",
+    "Uploading my CV",
+  ])("matches live CV upload phrasing: %s", (question) => {
+    const result = matchFaq(question);
+    expect(result.matchedFaqId).toBe("upload-cv");
+    expect(result.answer.toLowerCase()).toContain("profile");
+    expect(result.answer.toLowerCase()).not.toContain("coming soon");
+    expect(result.links).toEqual([
+      {
+        label: "Watch: Uploading your CV",
+        href: "https://www.youtube.com/watch?v=7lxKrfb72R4",
+      },
+    ]);
   });
 });

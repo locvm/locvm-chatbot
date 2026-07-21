@@ -45,6 +45,7 @@ const BASIC_INTENT_RULES: Array<{ faqId: string; phrases: string[] }> = [
       "login",
       "sign in",
       "signin",
+      "logging in",
       "cannot log in",
       "can t log in",
       "unable to log in",
@@ -61,6 +62,49 @@ const BASIC_INTENT_RULES: Array<{ faqId: string; phrases: string[] }> = [
       "create account",
       "make account",
       "new account",
+      "creating an account",
+    ],
+  },
+  {
+    faqId: "profile-setup-help",
+    phrases: [
+      "set up a profile",
+      "setup a profile",
+      "set up my profile",
+      "setup my profile",
+      "help me set up a profile",
+      "help me set up my profile",
+      "can you help me set up a profile",
+      "help with my profile",
+      "help me with my profile",
+      "profile setup",
+    ],
+  },
+  {
+    faqId: "profile-details-help",
+    phrases: [
+      "filling in my details",
+      "filling in profile details",
+      "filling in my profile details",
+      "fill in my details",
+      "fill in profile details",
+      "profile details",
+      "complete my details",
+      "update my profile details",
+    ],
+  },
+  {
+    faqId: "upload-medical-license-receipt",
+    phrases: [
+      "upload cpso",
+      "uploading cpso",
+      "upload my cpso",
+      "uploading my cpso",
+      "upload license",
+      "uploading license",
+      "upload my license",
+      "upload medical license",
+      "uploading cpsl",
     ],
   },
   {
@@ -222,7 +266,7 @@ const BASIC_INTENT_RULES: Array<{ faqId: string; phrases: string[] }> = [
     ],
   },
   {
-    faqId: "upload-cv-coming-soon",
+    faqId: "upload-cv",
     phrases: [
       "upload my cv",
       "upload cv",
@@ -231,8 +275,11 @@ const BASIC_INTENT_RULES: Array<{ faqId: string; phrases: string[] }> = [
       "add my cv",
       "add my resume",
       "where do i add my cv",
+      "where to add my cv",
       "can i add my resume",
       "curriculum vitae",
+      "uploading cv",
+      "uploading my cv",
     ],
   },
 ];
@@ -241,6 +288,7 @@ export type MatchFaqResult = {
   matchedFaqId: string | null;
   answer: string;
   links: FaqLink[];
+  suggestions: string[];
   matchScore: number | null;
   status: "matched" | "no_match";
 };
@@ -366,6 +414,7 @@ export function matchFaq(question: string): MatchFaqResult {
       matchedFaqId: null,
       answer: NO_MATCH_ANSWER,
       links: [],
+      suggestions: [],
       matchScore: null,
       status: "no_match",
     };
@@ -377,6 +426,7 @@ export function matchFaq(question: string): MatchFaqResult {
       matchedFaqId: basicIntentFaq.id,
       answer: basicIntentFaq.answer,
       links: basicIntentFaq.links ?? [],
+      suggestions: basicIntentFaq.suggestions ?? [],
       matchScore: MATCH_THRESHOLD,
       status: "matched",
     };
@@ -400,6 +450,7 @@ export function matchFaq(question: string): MatchFaqResult {
       matchedFaqId: null,
       answer: NO_MATCH_ANSWER,
       links: [],
+      suggestions: [],
       matchScore: null,
       status: "no_match",
     };
@@ -409,6 +460,7 @@ export function matchFaq(question: string): MatchFaqResult {
     matchedFaqId: bestFaq.id,
     answer: bestFaq.answer,
     links: bestFaq.links ?? [],
+    suggestions: bestFaq.suggestions ?? [],
     matchScore: bestScore,
     status: "matched",
   };
